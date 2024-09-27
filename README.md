@@ -2,7 +2,7 @@
 
 Spiking Neural Network (SNN) framework for classification, featuring fully-connected architectures, first-spike coding, single-spike IF/LIF neurons, floating-point spike timestamps (event-driven), and STDP-based supervised learning rules.
 
-This is the code for of the paper *Neuronal Competition Groups with Supervised STDP for Spike-Based Classification*, published at NeurIPS 2024 (see [official repo](https://gitlab.univ-lille.fr/fox/snn-ncg)).
+This is the code for the paper *Neuronal Competition Groups with Supervised STDP for Spike-Based Classification*, published at NeurIPS 2024 (see [official repo](https://gitlab.univ-lille.fr/fox/snn-ncg)).
 
 
 ## Getting started
