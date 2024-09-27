@@ -1,0 +1,28 @@
+{
+    "network": [
+        {
+            "n_neurons": 10,
+            "firing_threshold": 400,
+            "w_init_normal": true,
+            "w_init_mean": 0.3,
+            "w_init_std": 0.01,
+            "w_norm": true,
+            "w_min": 0,
+            "w_max": 1
+        }
+    ],
+
+    "optimizer": {
+        "method": "s2stdp",
+        "stdp": "additive",
+        "t_gap": 0.001,
+        "ap": 0.001,
+        "am": -0.05,
+        "annealing": 0.98
+    },
+
+    "trainer": {
+        "epochs": 100,
+        "early_stopping": 10
+    }
+}

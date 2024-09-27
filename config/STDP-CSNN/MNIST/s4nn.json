@@ -1,0 +1,26 @@
+{
+    "network": [
+        {
+            "n_neurons": 10,
+            "firing_threshold": 450,
+            "w_init_normal": true,
+            "w_init_mean": 0.5,
+            "w_init_std": 0.01,
+            "w_norm": false,
+            "w_min": -1000,
+            "w_max": 1000
+        }
+    ],
+
+    "optimizer": {
+        "method": "s4nn",
+        "t_gap": 0.125,
+        "lr": 0.005,
+        "annealing": 0.98
+    },
+
+    "trainer": {
+        "epochs": 100,
+        "early_stopping": 10
+    }
+}

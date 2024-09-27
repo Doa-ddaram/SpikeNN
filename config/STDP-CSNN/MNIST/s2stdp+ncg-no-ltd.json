@@ -1,0 +1,35 @@
+{
+    "network": [
+        {
+            "n_neurons": 50,
+            "firing_threshold": 200,
+            "w_init_normal": true,
+            "w_init_mean": 0.3,
+            "w_init_std": 0.01,
+            "w_norm": true,
+            "w_min": 0,
+            "w_max": 1
+        }
+    ],
+
+    "optimizer": {
+        "method": "s2stdp",
+        "stdp": "additive",
+        "class_inhib": true,
+        "t_gap": 0.03,
+        "ap": 0.05,
+        "am": -0,
+        "annealing": 0.98
+    },
+
+    "regularizer": {
+        "thr_lr": 10,
+        "thr_anneal": 0.5
+    },
+
+    "trainer": {
+        "epochs": 100,
+        "nt_neurons": 1,
+        "early_stopping": 10
+    }
+}

@@ -1,0 +1,27 @@
+{
+    "dataset": "MNIST",
+
+    "to_grayscale": false,
+    "feature_scaling": true,
+    "dog": [7,1,2],
+
+    "conv1_epochs": 100,
+    "conv1_c": 128,
+    "conv1_k": 5,
+    "conv1_w_init_mean": 0.5,
+    "conv1_w_init_std": 0.01,
+    "conv1_t_obj": 0.75,
+    "conv1_th": 5,
+    "conv1_min_th": 2,
+    "conv1_lr_th": 1,
+    "conv1_stdp": "multiplicative",
+    "conv1_stdp_t": 0.1,
+    "conv1_stdp_b": 1,
+    "conv1_stdp_lr": 0.1,
+    "conv1_annealing": 0.95,
+    "conv1_wta_infer": false,
+
+    "pool1_size": 4,
+
+    "use_sparse": true
+}

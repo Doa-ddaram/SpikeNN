@@ -1,0 +1,30 @@
+{
+    "network": [
+        {
+            "n_neurons": 2000,
+            "firing_threshold": 350,
+            "w_init_normal": true,
+            "w_init_mean": 0.8,
+            "w_init_std": 0.01,
+            "w_norm": false,
+            "w_min": 0.2,
+            "w_max": 0.8
+        }
+    ],
+
+    "optimizer": {
+        "method": "rstdp",
+        "stdp": "additive",
+        "ap": 0.1,
+        "am": -0.0075,
+        "anti_ap": -0.1,
+        "anti_am": 0.0075,
+        "annealing": 0.98
+    },
+
+    "trainer": {
+        "epochs": 100,
+        "dropout_out": 0.5,
+        "early_stopping": 10
+    }
+}

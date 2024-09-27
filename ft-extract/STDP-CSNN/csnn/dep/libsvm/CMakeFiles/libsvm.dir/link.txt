@@ -1,0 +1,1 @@
+/usr/bin/clang++  -fPIC   -shared -Wl,-soname,liblibsvm.so -o liblibsvm.so CMakeFiles/libsvm.dir/svm.cpp.o CMakeFiles/libsvm.dir/libsvm_automoc.cpp.o 

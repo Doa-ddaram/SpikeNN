@@ -1,0 +1,1 @@
+/usr/bin/clang++  -fPIC   -shared -Wl,-soname,libqcustomplot.so -o libqcustomplot.so CMakeFiles/qcustomplot.dir/qcustomplot.cpp.o CMakeFiles/qcustomplot.dir/qcustomplot_automoc.cpp.o /usr/lib/x86_64-linux-gnu/libQtCore.so /usr/lib/x86_64-linux-gnu/libQtGui.so /usr/lib/x86_64-linux-gnu/libQtCore.so 

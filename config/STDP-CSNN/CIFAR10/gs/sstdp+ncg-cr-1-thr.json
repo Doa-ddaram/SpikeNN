@@ -1,0 +1,37 @@
+{
+    "network": [
+        {
+            "n_neurons": 50,
+            "firing_threshold": [ 300, 350, 400 ],
+            "w_init_normal": true,
+            "w_init_mean": 0.5,
+            "w_init_std": 0.01,
+            "w_norm": false,
+            "w_min": 0,
+            "w_max": 1
+        }
+    ],
+
+    "optimizer": {
+        "method": "s2stdp",
+        "stdp": "additive",
+        "class_inhib": true,
+        "use_time_ranges": true,
+        "t_gap": [ 0.005, 0.001, 0.0005, 0.0001 ],
+        "ap": 0.1,
+        "am": [ -0.05, -0.01, -0.005, -0.001, 0 ],
+        "annealing": 0.98
+    },
+
+    "regularizer": {
+        "use_two_thr": false,
+        "thr_lr": [ 30, 20, 10, 5 ],
+        "thr_anneal": [ 0.9, 0.7, 0.5, 0.3, 0.1 ]
+    },
+
+    "trainer": {
+        "epochs": 100,
+        "early_stopping": 10,
+        "gridsearch_stop_acc": 0.5
+    }
+}
