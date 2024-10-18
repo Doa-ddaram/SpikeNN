@@ -2,7 +2,7 @@ import sys
 import numpy as np
 from tqdm import tqdm
 from spikenn.snn import Fc
-from spikenn.train import S2STDPOptimizer, RSTDPOptimizer, S4NNPOptimizer, AdditiveSTDP, MultiplicativeSTDP, BaseRegularizer, CompetitionRegularizerTwo, CompetitionRegularizerOne
+from spikenn.train import S2STDPOptimizer, RSTDPOptimizer, S4NNOptimizer, AdditiveSTDP, MultiplicativeSTDP, BaseRegularizer, CompetitionRegularizerTwo, CompetitionRegularizerOne
 from spikenn.utils import DecisionMap, Logger, EarlyStopper
 from spikenn._impl import spike_sort
 
@@ -249,7 +249,7 @@ class Readout:
         config_optim = config["optimizer"]
         # BP-based rule
         if config_optim["method"] == "s4nn":
-            optim = S4NNPOptimizer(
+            optim = S4NNOptimizer(
                 network=network, 
                 t_gap=config_optim["t_gap"],
                 class_inhib=config_optim.get('class_inhib', False), # intra-class WTA, use when multiple neurons per class (e.g. with NCGs),

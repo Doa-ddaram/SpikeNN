@@ -138,7 +138,7 @@ class RSTDPOptimizer(STDPOptimizer):
 
 # S4NN optimizer (BP-based)
 # NOTE: Can only train the output layer of the network 
-class S4NNPOptimizer:
+class S4NNOptimizer:
     
     __slots__ = ('network', 'lr', 't_gap', 'class_inhib', 'use_time_ranges', 'annealing', 'max_time')
 
