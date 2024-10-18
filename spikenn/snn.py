@@ -116,9 +116,9 @@ class Fc(SpikingLayer):
         self.input_size = input_size
         self.n_neurons = n_neurons
 
-    # NOTE: Implementation is in a function augmented with Numba to speed up computations on CPU
+    # NOTE: The implementation is in a function optimized with Numba to accelerate CPU computations.
     def __call__(self, sample):
-        # Convert sample to SpikingDataset format (needed for multi-layer networks only)
+        # Convert dense sample to SpikingDataset format (needed for multi-layer networks only)
         sample = self.convert_input(sample)
         # Select the employed thresholds
         thresholds = self.thresholds_train if self.train_mode else self.thresholds

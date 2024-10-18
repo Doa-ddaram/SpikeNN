@@ -126,7 +126,6 @@ def class_inhibition(spks, pots, decision_map, max_time):
 
 
 # SSTDP and S2-STDP weight update
-# NOTE: Do not handle well dropout on the output neurons (contrary to R-STDP)
 @njit
 def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_time_ranges, max_time, ap, am, anti_ap, anti_am, stdp_func, stdp_args):
     n_layers = len(outputs)
@@ -205,8 +204,7 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
 
 
 # S4NN backward pass
-# Almost similar to sstdp function, but in another function for the sake of clarity
-# NOTE: Do not handle well dropout on the output neurons (contrary to R-STDP)
+# Almost similar to sstdp code, but in another function for the sake of clarity
 @njit
 def s4nn(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_time_ranges, max_time, lr):
     n_layers = len(outputs)

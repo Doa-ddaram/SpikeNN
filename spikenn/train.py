@@ -40,9 +40,8 @@ class S2STDPOptimizer(STDPOptimizer):
 
 
     # NOTE: 
-    # Implementation is in a function augmented with Numba to speed up computations on CPU
-    # 
-    # code is not very clean, should be reworked.
+    # The implementation is in a function optimized with Numba to accelerate CPU computations.
+    # Hence, code is not very clean, should be reworked...
     # However, Numba is not easily implementable in class methods.
     def __call__(self, outputs, target_ind, decision_map):
         n_layers = len(self.network)
@@ -157,9 +156,8 @@ class S4NNOptimizer:
         
 
     # NOTE: 
-    # Implementation is in a function augmented with Numba to speed up computations on CPU
-    # 
-    # code is not very clean, should be reworked.
+    # The implementation is in a function optimized with Numba to accelerate CPU computations.
+    # Hence, code is not very clean, should be reworked...
     # However, Numba is not easily implementable in class methods.
     def __call__(self, outputs, target_ind, decision_map):
         n_layers = len(self.network)
@@ -296,7 +294,6 @@ class CompetitionRegularizerOne(BaseRegularizer):
 
 
 # STDP inferface to store parameters and callable to core function
-# TODO: Implementation not very clean, to rework
 class MultiplicativeSTDP:
     __slots__ = ('beta', 'w_min', 'w_max')
 
@@ -312,7 +309,6 @@ class MultiplicativeSTDP:
 
 
 # STDP inferface to store parameters and callable to core function
-# TODO: Implementation not very clean, to rework
 class AdditiveSTDP:
     __slots__ = ('max_time')
     
