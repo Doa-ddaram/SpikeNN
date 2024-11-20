@@ -85,7 +85,7 @@ In the paper, datasets are preprocessed with Hebbian-based unsupervised feature 
 
 The folder `ft-extract/` provides the scripts and documentation for obtaining and preprocessing each dataset with these feature extractors, as well as converting them to `SpikingDataset` objects.
 
-We also provide some features extracted with STDP-CSNN to facilitate quick experimentation: [repo](https://gitlab.univ-lille.fr/fox/CIFAR10-spike-features-CSNN).
+We also provide some features extracted with STDP-CSNN to facilitate quick experimentation: [MNIST](https://gitlab.univ-lille.fr/fox/MNIST-spike-features-CSNN), [Fashion-MNIST](https://gitlab.univ-lille.fr/fox/F-MNIST-spike-features-CSNN), [CIFAR-10](https://gitlab.univ-lille.fr/fox/CIFAR10-spike-features-CSNN).  
 
 ### 5.2 Accuracy comparison
 
