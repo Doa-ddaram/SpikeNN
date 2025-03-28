@@ -2,7 +2,7 @@ import numpy as np
 
 
 # To represent a list of spikes (sparse representation)
-DATA_TYPE = [('indices', np.int16), ('timestamps', np.float32)]
+DATA_TYPE = [('indices', np.int32), ('timestamps', np.float32)]
 
 
 # Iterator for SpikingDataset class
@@ -70,7 +70,7 @@ class SpikingDataset:
             dataset.data.append(sample)
 
         # Map numpy labels to numpy array of integers ranging from 0 to N
-        numpy_labels = np.searchsorted(np.unique(numpy_labels), numpy_labels).astype(np.int16)
+        numpy_labels = np.searchsorted(np.unique(numpy_labels), numpy_labels).astype(np.int32)
         dataset.labels = numpy_labels
         
         dataset.max_time = max_time
