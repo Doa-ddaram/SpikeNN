@@ -115,6 +115,8 @@ def class_inhibition(spks, pots, decision_map, max_time):
     winners = []
     for c in np.arange(decision_map.n_classes, dtype=np.int32):
         n_inds = np.arange(c*decision_map.n_neurons_per_class, c*decision_map.n_neurons_per_class+decision_map.n_neurons_per_class)
+        active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
+        if len(active_inds) == 0: continue
         sorted_inds = spike_sort(pots[n_inds], spks[n_inds])
         winner = n_inds[sorted_inds[0]]
         losers = n_inds[sorted_inds[1:]]
@@ -123,6 +125,27 @@ def class_inhibition(spks, pots, decision_map, max_time):
         winners.append(winner)
     return out_spks_inhib, mem_pots_inhib, np.array(winners)
 
+# Adaptive Neuron Pruning
+from sklearn.metrics.pairwise import cosine_similarity
+
+def mask_neuron(weights, decision_map, similarity_thr=0.9):
+    """
+    weights: weight vector of each neuron
+    """
+    for c in range(decision_map.n_classes):
+        n_inds = np.arange(c*decision_map.n_neurons_per_class, (c+1)*decision_map.n_neurons_per_class)
+        active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
+
+        if len(active_inds) <= 1:
+            continue
+
+        sims = cosine_similarity(weights[active_inds])
+        # Check only the upper triangular part of the matrix
+        for i in range(len(active_inds)):
+            for j in range(i+1, len(active_inds)):
+                if sims[i, j] > similarity_thr:
+                    decision_map.neuron_mask[active_inds[j]] = 0
+
 
 
 # SSTDP and S2-STDP weight update
@@ -130,7 +153,6 @@ def class_inhibition(spks, pots, decision_map, max_time):
 def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_time_ranges, max_time, ap, am, anti_ap, anti_am, stdp_func, stdp_args):
     n_layers = len(outputs)
     n_neurons_per_class = decision_map.n_neurons_per_class
-
     # --- Compute the error for each layer --- #
     errors = []
     for layer_ind in range(n_layers-1,-1,-1): # Reversed loop
@@ -144,7 +166,6 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
         
         # Output layer
         if layer_ind == n_layers - 1:
-            
             # Get neurons to update
             if class_inhib: # Intra-class WTA
                 out_spks, mem_pots, to_update_neurons = class_inhibition(out_spks, mem_pots, decision_map, max_time)

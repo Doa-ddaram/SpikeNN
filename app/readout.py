@@ -4,7 +4,7 @@ from tqdm import tqdm
 from spikenn.snn import Fc
 from spikenn.train import S2STDPOptimizer, RSTDPOptimizer, S4NNOptimizer, AdditiveSTDP, MultiplicativeSTDP, BaseRegularizer, CompetitionRegularizerTwo, CompetitionRegularizerOne
 from spikenn.utils import DecisionMap, Logger, EarlyStopper
-from spikenn._impl import spike_sort
+from spikenn._impl import spike_sort, mask_neuron
 
 np.set_printoptions(suppress=True) # Remove scientific notation
 
@@ -196,6 +196,9 @@ class Readout:
             if test_dataset is not None:
                 test_acc = self.predict(test_dataset)
                 self.logger.log(f"Accuracy on test set after epoch {epoch}: {round(test_acc,4)}")
+            
+            if epoch % 2 == 0:
+                mask_neuron(self.network[-1].weights, self.decision_map, similarity_thr=0.9)
 
 
         return (train_acc,
