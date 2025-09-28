@@ -114,9 +114,9 @@ def class_inhibition(spks, pots, decision_map, max_time):
     mem_pots_inhib = pots.copy()
     winners = []
     for c in np.arange(decision_map.n_classes, dtype=np.int32):
-        n_inds = np.arange(c*decision_map.n_neurons_per_class, c*decision_map.n_neurons_per_class+decision_map.n_neurons_per_class)
-        active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
-        if len(active_inds) == 0: continue
+        n_inds = np.arange(c*decision_map.n_neurons_per_class, (c+1)*decision_map.n_neurons_per_class)
+        # active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
+        # if len(active_inds) == 0: continue
         sorted_inds = spike_sort(pots[n_inds], spks[n_inds])
         winner = n_inds[sorted_inds[0]]
         losers = n_inds[sorted_inds[1:]]
@@ -125,28 +125,20 @@ def class_inhibition(spks, pots, decision_map, max_time):
         winners.append(winner)
     return out_spks_inhib, mem_pots_inhib, np.array(winners)
 
-# Adaptive Neuron Pruning
-from sklearn.metrics.pairwise import cosine_similarity
+# # Adaptive Neuron Pruning
+# @njit
+# def mask_neuron(decision_map, pots, spikes, intensity=0.9):
+#     """
+#     Mask neurons that are very similar to others within the same class.
+#     """
+#     for c in range(decision_map.n_classes):
+#         n_inds = np.arange(c*decision_map.n_neurons_per_class, (c+1)*decision_map.n_neurons_per_class)
+#         active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
+#         if len(active_inds) <= 1: continue
+#         sorted_inds = spike_sort(pots[active_inds], spikes[active_inds])
+#         losers = n_inds[sorted_inds[1:]]
 
-def mask_neuron(weights, decision_map, similarity_thr=0.9):
-    """
-    weights: weight vector of each neuron
-    """
-    for c in range(decision_map.n_classes):
-        n_inds = np.arange(c*decision_map.n_neurons_per_class, (c+1)*decision_map.n_neurons_per_class)
-        active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
-
-        if len(active_inds) <= 1:
-            continue
-
-        sims = cosine_similarity(weights[active_inds])
-        # Check only the upper triangular part of the matrix
-        for i in range(len(active_inds)):
-            for j in range(i+1, len(active_inds)):
-                if sims[i, j] > similarity_thr:
-                    decision_map.neuron_mask[active_inds[j]] = 0
-
-
+#         decision_map.neuron_mask[losers] *= intensity
 
 # SSTDP and S2-STDP weight update
 @njit
@@ -175,7 +167,9 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
                 n_target_neurons = n_neurons_per_class
                 n_updating_neurons = n_neurons
                 to_update_neurons = np.arange(n_neurons)
-            
+
+            # if mask_neuron_type: mask_neuron(decision_map, mem_pots, out_spks, intensity=0.9)
+
             # Target and non-target desired timestamps based on the average firing time
             ntarget_t_gap = t_gap * (n_target_neurons/n_updating_neurons)
             target_t_gap = t_gap * ((n_updating_neurons-n_target_neurons)/n_updating_neurons)

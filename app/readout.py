@@ -4,7 +4,8 @@ from tqdm import tqdm
 from spikenn.snn import Fc
 from spikenn.train import S2STDPOptimizer, RSTDPOptimizer, S4NNOptimizer, AdditiveSTDP, MultiplicativeSTDP, BaseRegularizer, CompetitionRegularizerTwo, CompetitionRegularizerOne
 from spikenn.utils import DecisionMap, Logger, EarlyStopper
-from spikenn._impl import spike_sort, mask_neuron
+# from spikenn._impl import spike_sort, mask_neuron
+from spikenn._impl import spike_sort
 
 np.set_printoptions(suppress=True) # Remove scientific notation
 
@@ -28,8 +29,8 @@ class Readout:
         self.n_classes = self.decision_map.n_classes
         self.n_neurons_per_class = self.decision_map.n_neurons_per_class
 
-        self.full_logs = False
-        self.save_stats = False
+        self.full_logs = True
+        self.save_stats = True
         
 
     # Training method
@@ -58,7 +59,6 @@ class Readout:
 
         # Training loop
         for epoch in range(epochs):
-
             ####################################
             ############# TRAINING #############
 
@@ -197,8 +197,8 @@ class Readout:
                 test_acc = self.predict(test_dataset)
                 self.logger.log(f"Accuracy on test set after epoch {epoch}: {round(test_acc,4)}")
             
-            if epoch % 2 == 0:
-                mask_neuron(self.network[-1].weights, self.decision_map, similarity_thr=0.9)
+            # if epoch % 4 == 3:
+            #     mask_neuron(self.decision_map, self.network[-1].mem_pots, self.network[-1].spikes, intensity=0.9)
 
 
         return (train_acc,

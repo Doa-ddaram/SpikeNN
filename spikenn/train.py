@@ -36,9 +36,8 @@ class S2STDPOptimizer(STDPOptimizer):
         super().__init__(network, stdp, ap, am, anti_ap, anti_am, annealing, max_time)
         self.t_gap = t_gap # Time gap hyperparameter
         self.class_inhib = class_inhib # True for intra-class WTA
-        self.use_time_ranges = use_time_ranges # True to use SSTDP instead of S2-STDP 
-
-
+        self.use_time_ranges = use_time_ranges # True to use SSTDP instead of S2-STDP
+        # self.mask_neuron_type = mask_neuron_type # True to use adaptive neuron pruning
     # NOTE: 
     # The implementation is in a function optimized with Numba to accelerate CPU computations.
     # Hence, code is not very clean, should be reworked...

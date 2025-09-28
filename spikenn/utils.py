@@ -16,7 +16,7 @@ spec = [
     ('n_neurons_per_class', int32),
     ('map_class', int32[:]),
     ('map_type', int32[:]),
-    ('neuron_mask', int32[:]),
+    # ('neuron_mask', int32[:]),
 ]
 @jitclass(spec)
 class DecisionMap:
@@ -28,7 +28,7 @@ class DecisionMap:
         self.n_neurons_per_class = int(n_neurons / n_classes)
         self.map_class = np.zeros(self.n_neurons, dtype=np.int32) # Class mapping
         self.map_type = np.zeros(self.n_neurons, dtype=np.int32) # Target / non-target mapping
-        self.neuron_mask = np.ones(self.n_neurons, dtype=np.int32) # Mask for neurons (1: active, 0: inactive)
+        # self.neuron_mask = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons (1: active, 0: inactive)
         
         for i in range(self.n_neurons):
             self.map_class[i] = int(i/self.n_neurons_per_class) # class indice
