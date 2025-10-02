@@ -114,9 +114,10 @@ def class_inhibition(spks, pots, decision_map, max_time):
     mem_pots_inhib = pots.copy()
     winners = []
     for c in np.arange(decision_map.n_classes, dtype=np.int32):
-        n_inds = np.arange(c*decision_map.n_neurons_per_class, (c+1)*decision_map.n_neurons_per_class)
-        # active_inds = n_inds[decision_map.neuron_mask[n_inds] == 1]
-        # if len(active_inds) == 0: continue
+        start = decision_map.class_start(c)
+        end   = decision_map.class_end(c)
+        n_inds = np.arange(start, end, dtype=np.int32)
+
         sorted_inds = spike_sort(pots[n_inds], spks[n_inds])
         winner = n_inds[sorted_inds[0]]
         losers = n_inds[sorted_inds[1:]]
@@ -144,7 +145,7 @@ def class_inhibition(spks, pots, decision_map, max_time):
 @njit
 def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_time_ranges, max_time, ap, am, anti_ap, anti_am, stdp_func, stdp_args):
     n_layers = len(outputs)
-    n_neurons_per_class = decision_map.n_neurons_per_class
+    n_neurons_per_class = 1
     # --- Compute the error for each layer --- #
     errors = []
     for layer_ind in range(n_layers-1,-1,-1): # Reversed loop
@@ -166,7 +167,7 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
             else: # No WTA
                 n_target_neurons = n_neurons_per_class
                 n_updating_neurons = n_neurons
-                to_update_neurons = np.arange(n_neurons)
+                to_update_neurons = np.arange(n_neurons, dtype=np.int32)
 
             # if mask_neuron_type: mask_neuron(decision_map, mem_pots, out_spks, intensity=0.9)
 

@@ -13,26 +13,41 @@ spec = [
     ('n_neurons', int32),
     ('n_nt_neurons', int32),
     ('n_classes', int32),
-    ('n_neurons_per_class', int32),
+    ('class_offsets', int32[:]),
     ('map_class', int32[:]),
     ('map_type', int32[:]),
     # ('neuron_mask', int32[:]),
+    ('neurons_per_class_arr', int32[:]),
 ]
 @jitclass(spec)
 class DecisionMap:
-    def __init__(self, n_neurons, n_nt_neurons, n_classes):
-        self.n_neurons = n_neurons
+    def __init__(self, n_nt_neurons, neurons_per_class_arr):
         self.n_nt_neurons = n_nt_neurons # Number of non-target neurons
-        self.n_classes = n_classes
+        self.n_classes = neurons_per_class_arr.shape[0]
+        class_offsets = np.empty(self.n_classes + 1, dtype=np.int32)
+        class_offsets[0] = 0
+        for i in range(self.n_classes):
+            class_offsets[i + 1] = class_offsets[i] + int(neurons_per_class_arr[i])
+        self.class_offsets = class_offsets
+        self.neurons_per_class_arr = neurons_per_class_arr.copy()
+
+        self.n_neurons = self.class_offsets[self.n_classes]
         # Neurons are evenly mapped to classes
-        self.n_neurons_per_class = int(n_neurons / n_classes)
-        self.map_class = np.zeros(self.n_neurons, dtype=np.int32) # Class mapping
-        self.map_type = np.zeros(self.n_neurons, dtype=np.int32) # Target / non-target mapping
-        # self.neuron_mask = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons (1: active, 0: inactive)
-        
-        for i in range(self.n_neurons):
-            self.map_class[i] = int(i/self.n_neurons_per_class) # class indice
-            self.map_type[i] = 1 if i%self.n_neurons_per_class >= self.n_nt_neurons else 0 # 1 for target, 0 for non target
+
+        self.map_class = np.empty(self.n_neurons, dtype=np.int32) # Class mapping
+        self.map_type = np.empty(self.n_neurons, dtype=np.int32) # Target / non-target mapping
+        idx = 0
+        print(self.n_classes)
+        for c in range(self.n_classes):
+            start= self.class_offsets[c]
+            end= self.class_offsets[c + 1]
+            for idx in range(start, end):
+                self.map_class[idx] = c
+                local = idx - start
+                self.map_type[idx] = 1 if local >= self.n_nt_neurons else 0
+        # for i in range(self.n_neurons):
+        #     self.map_class[i] = int(i/self.n_neurons_per_class) # class indice
+        #     self.map_type[i] = 1 if i%self.n_neurons_per_class >= self.n_nt_neurons else 0 # 1 for target, 0 for non target
 
     def is_target_neuron(self, n):
         return self.map_type[n] == 1
@@ -54,6 +69,11 @@ class DecisionMap:
         
     def get_class(self, n):
         return self.map_class[n]
+    
+    def class_start(self, c):
+        return self.class_offsets[c]
+    def class_end(self, c):
+        return self.class_offsets[c+1]
 
 
 
