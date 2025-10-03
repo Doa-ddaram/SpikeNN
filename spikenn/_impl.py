@@ -16,15 +16,15 @@ def weight_norm(weight, target_norm):
 # NOTE: Numba is not compatible with np.lexsort((-mem_pots, out_spks))
 @njit
 def spike_sort(pots, spks):
-    indices = np.arange(len(spks))
-    for i in range(1, len(indices)):
-        key_index = indices[i]
+    idx = np.arange(len(spks))
+    for i in range(1, len(idx)):
+        key_index = idx[i]
         j = i - 1
-        while j >= 0 and (spks[indices[j]] > spks[key_index] or (spks[indices[j]] == spks[key_index] and -pots[indices[j]] > -pots[key_index])):
-            indices[j + 1] = indices[j]
+        while j >= 0 and (spks[idx[j]] > spks[key_index] or (spks[idx[j]] == spks[key_index] and -pots[idx[j]] > -pots[key_index])):
+            idx[j + 1] = idx[j]
             j -= 1
-        indices[j + 1] = key_index
-    return indices
+        idx[j + 1] = key_index
+    return idx
 
 
 
@@ -55,7 +55,7 @@ def forward_fc(input_size, indices, timestamps, weights, thresholds, leak_tau, m
                 # Apply leak according to the time difference between the current and last input spikes
                 if leak_tau is not None: 
                     for n_ind in range(n_neurons):
-                        if active_neurons[n_ind] == 1:
+                        if active_neurons[n_ind] ==  1:
                             mem_pots[n_ind] *= np.exp(-(time-curr_time)/leak_tau[n_ind])
                 # Generate output spikes
                 for n_ind in range(n_neurons):
@@ -114,13 +114,10 @@ def class_inhibition(spks, pots, decision_map, max_time):
     mem_pots_inhib = pots.copy()
     winners = []
     for c in np.arange(decision_map.n_classes, dtype=np.int32):
-        start = decision_map.class_start(c)
-        end   = decision_map.class_end(c)
-        n_inds = np.arange(start, end, dtype=np.int32)
-
-        sorted_inds = spike_sort(pots[n_inds], spks[n_inds])
-        winner = n_inds[sorted_inds[0]]
-        losers = n_inds[sorted_inds[1:]]
+        n_idx = np.arange(c*decision_map.n_neurons_per_class, (c+1)*decision_map.n_neurons_per_class, dtype=np.int32)
+        sorted_inds = spike_sort(pots[n_idx], spks[n_idx])
+        winner = n_idx[sorted_inds[0]]
+        losers = n_idx[sorted_inds[1:]]
         out_spks_inhib[losers] = max_time
         mem_pots_inhib[losers] = 0
         winners.append(winner)
@@ -145,7 +142,8 @@ def class_inhibition(spks, pots, decision_map, max_time):
 @njit
 def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_time_ranges, max_time, ap, am, anti_ap, anti_am, stdp_func, stdp_args):
     n_layers = len(outputs)
-    n_neurons_per_class = 1
+    n_neurons_per_class = decision_map.n_neurons_per_class
+    
     # --- Compute the error for each layer --- #
     errors = []
     for layer_ind in range(n_layers-1,-1,-1): # Reversed loop
@@ -157,6 +155,12 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
         n_neurons = out_spks.shape[0]
         error = np.zeros(n_neurons, dtype=np.float32)
         
+        for n_ind in range(n_neurons):
+            if decision_map.neuron_mask[n_ind] == 0:
+                error[n_ind] = 0
+                out_spks[n_ind] = max_time
+                mem_pots[n_ind] = 0
+                
         # Output layer
         if layer_ind == n_layers - 1:
             # Get neurons to update
@@ -179,6 +183,7 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
                       
             # Compute error for neurons to update
             for n_ind in to_update_neurons:
+                if decision_map.neuron_mask[n_ind] == 0: continue
                 # Target neuron
                 if decision_map.get_class(n_ind) == y and decision_map.is_target_neuron(n_ind):
                     # SSTDP training
@@ -206,6 +211,7 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
         in_spks, out_spks, _ = outputs[layer_ind]
         weights = network_weights[layer_ind].copy()
         for n_ind,error in enumerate(errors[layer_ind]):
+            if decision_map.neuron_mask[n_ind] == 0: continue
             # No update
             if error == 0: continue
             # Select the learning rate to apply STDP or anti-STDP

@@ -1,7 +1,7 @@
 {
     "network": [
         {
-            "n_neurons": 30,
+            "n_neurons": 100,
             "firing_threshold": 400,
             "w_init_normal": true,
             "w_init_mean": 0.3,

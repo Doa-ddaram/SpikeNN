@@ -14,7 +14,7 @@ np.set_printoptions(suppress=True) # Remove scientific notation
 # NOTE: It is possible to define a multi-layer architecture but the current code does not support multi-layer training
 class Readout:
 
-    def __init__(self, n_classes, network, optimizer, regularizer, config, neurons_per_class, logger=Logger()):
+    def __init__(self, n_classes, network, optimizer, regularizer, config, logger=Logger()):
         self.network = network # List of SpikingLayer instances
         self.optimizer = optimizer # STDP-based optimizer instance
         self.regularizer = regularizer # Regularizer instance
@@ -23,11 +23,11 @@ class Readout:
 
         # Decision map in the output layer
         # Neurons are evenly mapped to classes
-        self.neurons_per_class = np.array(neurons_per_class, dtype=np.int32)
-        n_nt_neurons = self.config.get("nt_neurons", 0) # Non-target neurons per class
-        self.decision_map = DecisionMap(n_nt_neurons, self.neurons_per_class)
+        n_neurons = network[-1].n_neurons
+        n_nt_neurons = self.config.get("nt_neurons", 0)
+        self.decision_map = DecisionMap(n_neurons, n_nt_neurons, n_classes)
         self.n_classes = self.decision_map.n_classes
-        # self.n_neurons_per_class = self.decision_map.n_neurons_per_class
+        self.n_neurons_per_class = self.decision_map.n_neurons_per_class
 
         self.full_logs = True
         self.save_stats = True
@@ -117,15 +117,12 @@ class Readout:
                 
                 # Stats when multiple neurons per class (i.e. with NCGs)
                 for c in range(self.n_classes):
-                    start = self.decision_map.class_start(c)
-                    end   = self.decision_map.class_end(c)
-                    n_inds = np.arange(start, end, dtype=np.int32)
-                    print(len(mem_pots))
-                    winner = n_inds[spike_sort(mem_pots[n_inds], x[n_inds])[0]]
+                    n_idx = np.arange(c* self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
+                    winner = n_idx[spike_sort(mem_pots[n_idx], x[n_idx])[0]]
                     if c == y: 
                         target_updates[winner] += 1
                         if target_updates[winner] > 500:
-                            self.split_neuron(class_idx=y, neuron_idx=winner, k=2)
+                            self.activate_neuron(class_idx=y, neuron_idx=winner)
                         if self.save_stats: t_updates_trace[epoch, cnt, winner] = 1
                     else:
                         ntarget_updates[winner] += 1
@@ -133,7 +130,7 @@ class Readout:
                 if self.save_stats: 
                     winning_cnt[w_ind] += 1
                     neuron_prec_trace[epoch, w_ind] += predicted == y
-                    if isinstance(self.regularizer, CompetitionRegularizerTwo): 
+                    if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo): 
                         thresholds_trace[epoch, cnt, :] = self.regularizer.thresholds[:]
                     cnt += 1
 
@@ -150,12 +147,13 @@ class Readout:
             train_acc = train_acc / train_dataset.shape[0]
             if self.full_logs:
                 # Stats when multiple neurons per class (i.e. with NCGs)  
-                if isinstance(self.regularizer, CompetitionRegularizerTwo):
+                if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo):
                     for c in range(self.n_classes):
-                        n_inds = np.arange(c*self.n_neurons_per_class, c*self.n_neurons_per_class+self.n_neurons_per_class)
-                        self.logger.log(target_updates[n_inds])
-                        self.logger.log(ntarget_updates[n_inds])
-                        self.logger.log(np.round(self.regularizer.thresholds[n_inds],0))
+                        n_idx = np.arange(c*self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
+                        self.logger.log(target_updates[n_idx])
+                        self.logger.log(ntarget_updates[n_idx])
+                        self.logger.log(np.round(self.regularizer.thresholds[n_idx],0))
+                        self.logger.log(self.decision_map.neuron_mask[n_idx])
                         self.logger.log("")
             for i, layer in enumerate(self.network):
                 self.logger.log(f"=== Layer {i} ===")
@@ -225,47 +223,59 @@ class Readout:
         acc = acc / dataset.shape[0]            
         return acc
     
-    def split_neuron(self, class_idx, neuron_idx, k=2):
-        print(f"Splitting neuron {neuron_idx} of class {class_idx} into {k} neurons")
-        old_layer = self.network[-1]
-        old_weights = old_layer.weights.copy()
+    # def split_neuron(self, class_idx, neuron_idx, k=2):
+    #     print(f"Splitting neuron {neuron_idx} of class {class_idx} into {k} neurons")
+    #     old_layer = self.network[-1]
+    #     old_weights = old_layer.weights.copy()
         
-        new_neurons_per_class = self.decision_map.neurons_per_class_arr.copy()
-        new_neurons_per_class[class_idx] += k-1
-        new_decision_map = DecisionMap(self.decision_map.n_nt_neurons, new_neurons_per_class)
-        new_n_neurons = sum(new_neurons_per_class)
+    #     new_neurons_per_class = self.decision_map.neurons_per_class_arr.copy()
+    #     new_neurons_per_class[class_idx] += k-1
+    #     new_decision_map = DecisionMap(self.decision_map.n_nt_neurons, new_neurons_per_class)
+    #     new_n_neurons = sum(new_neurons_per_class)
         
-        new_layer = Fc(
-            input_size=old_layer.input_size,
-            n_neurons=new_n_neurons,
-            firing_threshold=old_layer.thresholds[0],
-            w_init_normal=True,
-            w_init_mean=0.5,
-            w_init_std=0.01,
-            leak_tau=None,
-            w_norm=False,
-            w_min=0,
-            w_max=1,
-            max_time=1
-        )
+    #     new_layer = Fc(
+    #         input_size=old_layer.input_size,
+    #         n_neurons=new_n_neurons,
+    #         firing_threshold=old_layer.thresholds[0],
+    #         w_init_normal=True,
+    #         w_init_mean=0.5,
+    #         w_init_std=0.01,
+    #         leak_tau=None,
+    #         w_norm=False,
+    #         w_min=0,
+    #         w_max=1,
+    #         max_time=1
+    #     )
      
-        new_layer.weights[:old_weights.shape[0]] = old_weights
+    #     new_layer.weights[:old_weights.shape[0]] = old_weights
         
-        base_w = old_weights[neuron_idx].copy()
-        for i in range(1, k):
-            new_layer.weights[old_weights.shape[0]+i-1] = base_w + np.random.normal(0, 0.01, size=base_w.shape)
+    #     base_w = old_weights[neuron_idx].copy()
+    #     for i in range(1, k):
+    #         new_layer.weights[old_weights.shape[0]+i-1] = base_w + np.random.normal(0, 0.01, size=base_w.shape)
         
-        #change network
-        self.network[-1] = new_layer
-        self.optimizer.network = self.network
-        self.regularizer.layer = new_layer
-        self.decision_map = new_decision_map
-        print(f"New output layer shape: {new_layer.weights.shape}")
+    #     #change network
+    #     self.network[-1] = new_layer
+    #     self.optimizer.network = self.network
+    #     self.regularizer.layer = new_layer
+    #     self.decision_map = new_decision_map
+    #     print(f"New output layer shape: {new_layer.weights.shape}")
+    
+    def activate_neuron(self, class_idx, neuron_idx):
+        # print(f"neuron {neuron_idx} update too much")
+        # print(f"Activating neuron {neuron_idx + 1} of class {class_idx}")
+        if neuron_idx + 1 >= self.decision_map.n_neurons:
+            raise ValueError("Neuron index out of range")
+        if neuron_idx % self.n_classes == 0:
+            print(f"neuron {neuron_idx} Cannot activate next neuron, already the first neuron of the next class")
+            return
+        self.decision_map.neuron_mask[neuron_idx+1] = 1
+        
+        
         
     # Create a Readout instance from a dict config
     @classmethod
-    def init_from_dict(cls, config, input_shape, n_classes, output_dir, max_time, neurons_per_class):
-                    
+    def init_from_dict(cls, config, input_shape, n_classes, output_dir, max_time):
+        
         # Init network
         network = []
         previous_shape = input_shape
@@ -362,4 +372,4 @@ class Readout:
         # Training parameters
         config_trainer = config["trainer"]
         
-        return cls(n_classes=n_classes, network=network, optimizer=optim, regularizer=regularizer, config=config_trainer, logger=logger, neurons_per_class=neurons_per_class)
+        return cls(n_classes=n_classes, network=network, optimizer=optim, regularizer=regularizer, config=config_trainer, logger=logger)

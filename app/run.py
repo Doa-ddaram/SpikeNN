@@ -24,7 +24,7 @@ def main(dataset_path, config, output_dir, seed=0):
     if empty_dataset: raise RuntimeError("Some input samples do not contain any spike.")
 
     # Define the model
-    model = Readout.init_from_dict(config, trainset.shape[1], n_classes, output_dir, trainset.max_time, neurons_per_class=[3]*10)
+    model = Readout.init_from_dict(config, trainset.shape[1], n_classes, output_dir, trainset.max_time)
     model.logger.log(config)
 
     # Train the model
