@@ -81,6 +81,7 @@ class Readout:
             # Prepare regularizer
             self.regularizer.on_epoch_start()
             
+            active_list = [] # List of (class, neuron) tuples to activate the next neuron of the class
             # For each sample
             for x, y in tqdm(train_dataset, total=train_dataset.shape[0], disable=not sys.stdout.isatty()):
                 
@@ -121,8 +122,8 @@ class Readout:
                     winner = n_idx[spike_sort(mem_pots[n_idx], x[n_idx])[0]]
                     if c == y: 
                         target_updates[winner] += 1
-                        if target_updates[winner] > 500:
-                            self.activate_neuron(class_idx=y, neuron_idx=winner)
+                        if epoch % 5 == 4 and (target_updates[winner] > 500 and winner % self.n_neurons_per_class != 0):
+                            active_list.append((y, winner))
                         if self.save_stats: t_updates_trace[epoch, cnt, winner] = 1
                     else:
                         ntarget_updates[winner] += 1
@@ -133,7 +134,11 @@ class Readout:
                     if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo): 
                         thresholds_trace[epoch, cnt, :] = self.regularizer.thresholds[:]
                     cnt += 1
-
+            if epoch % 5 == 4:
+                print("Active set", set(active_list))
+                active_list = list(set(active_list))
+                for class_idx, neuron_idx in active_list:
+                    self.activate_neuron(class_idx, neuron_idx)
             # Save some training info
             if self.save_stats:
                 neuron_prec_trace[epoch] /= winning_cnt
@@ -263,12 +268,13 @@ class Readout:
     def activate_neuron(self, class_idx, neuron_idx):
         # print(f"neuron {neuron_idx} update too much")
         # print(f"Activating neuron {neuron_idx + 1} of class {class_idx}")
-        if neuron_idx + 1 >= self.decision_map.n_neurons:
-            raise ValueError("Neuron index out of range")
-        if neuron_idx % self.n_classes == 0:
-            print(f"neuron {neuron_idx} Cannot activate next neuron, already the first neuron of the next class")
+        if neuron_idx % self.n_neurons_per_class == 0:
             return
-        self.decision_map.neuron_mask[neuron_idx+1] = 1
+        idx = sum(self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class:(class_idx+1)*self.n_neurons_per_class])
+        if idx >= self.n_neurons_per_class - 1:
+            # print(f"neuron {neuron_idx} Cannot activate next neuron, all neurons of class {class_idx} are already active")
+            return
+        self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class + idx] = 1
         
         
         

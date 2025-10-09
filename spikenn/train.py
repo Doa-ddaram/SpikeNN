@@ -241,17 +241,18 @@ class CompetitionRegularizerTwo(BaseRegularizer):
         # Unpack outputs of forward pass 
         _, out_spks, mem_pots = outputs[-1]
         # Get target neurons
-        n_inds = decision_map.get_target_neurons(y)
+            # sum_mask = decision_map.get_target_neurons(y)
+        sum_mask = decision_map.get_target_mask(y)
         # No competition regulation if < 2 target neurons
-        if len(n_inds) <= 1: return
+        if len(sum_mask) <= 1: return
         # Get first firing neuron (winner) and the others (losers)
-        sorted_inds = spike_sort(mem_pots[n_inds], out_spks[n_inds])
-        winner = n_inds[sorted_inds[0]]
-        losers = n_inds[sorted_inds[1:]]
+        sorted_inds = spike_sort(mem_pots[sum_mask], out_spks[sum_mask])
+        winner = sum_mask[sorted_inds[0]]
+        losers = sum_mask[sorted_inds[1:]]
         # Apply competition regulation only if the winner is a target neuron
         if decision_map.is_target_neuron(winner):
-            self.thresholds[winner] += self.thr_lr * (len(n_inds)-1) / len(n_inds) 
-            self.thresholds[losers] -= self.thr_lr * 1 / len(n_inds)
+            self.thresholds[winner] += self.thr_lr * (len(sum_mask)-1) / len(sum_mask) 
+            self.thresholds[losers] -= self.thr_lr * 1 / len(sum_mask)
             self.thresholds = np.clip(self.thresholds, self.thr_min, self.thr_max)
             
             

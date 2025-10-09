@@ -34,14 +34,7 @@ class DecisionMap:
         for c in range(self.n_classes):
             start= c * self.n_neurons_per_class
             self.neuron_mask[start:start+3] = 1
-        # idx = 0
-        # for c in range(self.n_classes):
-        #     start= self.class_offsets[c]
-        #     end= self.class_offsets[c + 1]
-        #     for idx in range(start, end):
-        #         self.map_class[idx] = c
-        #         local = idx - start
-        #         self.map_type[idx] = 1 if local >= self.n_nt_neurons else 0
+            
         for i in range(self.n_neurons):
             self.map_class[i] = int(i/self.n_neurons_per_class) # class indice
             self.map_type[i] = 1 if i%self.n_neurons_per_class >= self.n_nt_neurons else 0 # 1 for target, 0 for non target
@@ -64,6 +57,12 @@ class DecisionMap:
             if self.map_type[i] == 0 and (y is None or self.map_class[i] == y) and (not_y is None or self.map_class[i] != y): inds.append(i)
         return np.array(inds, dtype=np.int32)
         
+    def get_target_mask(self, y=None):
+        idx = []
+        for i in range(self.n_neurons):
+            if self.map_type[i] == 1 and (self.neuron_mask[i] == 1): idx.append(i)
+        return np.array(idx, dtype=np.int32)
+    
     def get_class(self, n):
         return self.map_class[n]
     
