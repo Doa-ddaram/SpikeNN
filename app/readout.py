@@ -57,11 +57,14 @@ class Readout:
             nt_updates_trace = np.zeros((epochs, train_dataset.shape[0], self.network[-1].n_neurons), dtype=np.uint8)
             neuron_prec_trace = np.zeros((epochs, self.network[-1].n_neurons), dtype=np.float32)
 
+        check_list = [0 for i in range(self.network[-1].n_neurons)] 
+        
         # Training loop
         for epoch in range(epochs):
             ####################################
             ############# TRAINING #############
-
+            active_list = []
+            
             # Stats
             train_acc = 0
             min_out_spks = [[] for i in range(len(self.network))]
@@ -81,7 +84,6 @@ class Readout:
             # Prepare regularizer
             self.regularizer.on_epoch_start()
             
-            active_list = [] # List of (class, neuron) tuples to activate the next neuron of the class
             # For each sample
             for x, y in tqdm(train_dataset, total=train_dataset.shape[0], disable=not sys.stdout.isatty()):
                 
@@ -122,7 +124,7 @@ class Readout:
                     winner = n_idx[spike_sort(mem_pots[n_idx], x[n_idx])[0]]
                     if c == y: 
                         target_updates[winner] += 1
-                        if epoch % 5 == 4 and (target_updates[winner] > 500 and winner % self.n_neurons_per_class != 0):
+                        if epoch % 5 == 4 and (target_updates[winner] > 1000 and winner % self.n_neurons_per_class != 0):
                             active_list.append((y, winner))
                         if self.save_stats: t_updates_trace[epoch, cnt, winner] = 1
                     else:
@@ -138,7 +140,9 @@ class Readout:
                 print("Active set", set(active_list))
                 active_list = list(set(active_list))
                 for class_idx, neuron_idx in active_list:
-                    self.activate_neuron(class_idx, neuron_idx)
+                    if check_list[neuron_idx] == 0:
+                        self.activate_neuron(class_idx, neuron_idx)
+                        check_list[neuron_idx] = 1
             # Save some training info
             if self.save_stats:
                 neuron_prec_trace[epoch] /= winning_cnt
@@ -227,43 +231,7 @@ class Readout:
             acc += predicted == y
         acc = acc / dataset.shape[0]            
         return acc
-    
-    # def split_neuron(self, class_idx, neuron_idx, k=2):
-    #     print(f"Splitting neuron {neuron_idx} of class {class_idx} into {k} neurons")
-    #     old_layer = self.network[-1]
-    #     old_weights = old_layer.weights.copy()
-        
-    #     new_neurons_per_class = self.decision_map.neurons_per_class_arr.copy()
-    #     new_neurons_per_class[class_idx] += k-1
-    #     new_decision_map = DecisionMap(self.decision_map.n_nt_neurons, new_neurons_per_class)
-    #     new_n_neurons = sum(new_neurons_per_class)
-        
-    #     new_layer = Fc(
-    #         input_size=old_layer.input_size,
-    #         n_neurons=new_n_neurons,
-    #         firing_threshold=old_layer.thresholds[0],
-    #         w_init_normal=True,
-    #         w_init_mean=0.5,
-    #         w_init_std=0.01,
-    #         leak_tau=None,
-    #         w_norm=False,
-    #         w_min=0,
-    #         w_max=1,
-    #         max_time=1
-    #     )
-     
-    #     new_layer.weights[:old_weights.shape[0]] = old_weights
-        
-    #     base_w = old_weights[neuron_idx].copy()
-    #     for i in range(1, k):
-    #         new_layer.weights[old_weights.shape[0]+i-1] = base_w + np.random.normal(0, 0.01, size=base_w.shape)
-        
-    #     #change network
-    #     self.network[-1] = new_layer
-    #     self.optimizer.network = self.network
-    #     self.regularizer.layer = new_layer
-    #     self.decision_map = new_decision_map
-    #     print(f"New output layer shape: {new_layer.weights.shape}")
+
     
     def activate_neuron(self, class_idx, neuron_idx):
         # print(f"neuron {neuron_idx} update too much")
@@ -271,7 +239,7 @@ class Readout:
         if neuron_idx % self.n_neurons_per_class == 0:
             return
         idx = sum(self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class:(class_idx+1)*self.n_neurons_per_class])
-        if idx >= self.n_neurons_per_class - 1:
+        if idx >= self.n_neurons_per_class:
             # print(f"neuron {neuron_idx} Cannot activate next neuron, all neurons of class {class_idx} are already active")
             return
         self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class + idx] = 1

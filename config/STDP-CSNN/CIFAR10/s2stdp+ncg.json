@@ -30,6 +30,6 @@
     "trainer": {
         "epochs": 100,
         "nt_neurons": 1,
-        "early_stopping": 10
+        "early_stopping": 0
     }
 }
