@@ -48,6 +48,20 @@ python3 app/generate_dataset.py /input/X_train.npy /input/y_train.npy /output/tr
 
 ### Run 
 
+Quick Start:
+
+```
+python -m generate_cifar10
+mkdir input & mkdir output
+python -m app.generate_dataset input/X_train.npy input/y_train.npy input/trainset.npy
+python -m app.generate_dataset input/X_val.npy input/y_val.npy input/valset.npy
+python -m app.generate_dataset input/X_test.npy input/y_test.npy input/testset.npy
+
+if you want model(s2stdp) and NCG method,
+
+python3 app/run.py input/ output/ config/STDP-CSNN/CIFAR10/s2stdp+ncg.json
+```
+
 To start a single run:
 ```
 python3 app/run.py /input/data/dir/ /output/data/dir/ /config/file [--seed 0]
