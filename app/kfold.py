@@ -23,9 +23,9 @@ if __name__ == "__main__":
     # Create a pool of workers for parallel processing
     pool = multiprocessing.Pool(processes=int(args.n_proc))
 
-    results = pool.starmap_async(main, [(f"{args.input_dir}/{i}/", config, f"{args.output_dir}/{i}/", i) for i in range(int(args.K))])
+    results = pool.starmap_async(main, [(f"{args.input_dir}/{i}", config, f"{args.output_dir}/{i}/", i) for i in range(int(args.K))])
     
-    results.wait()
+    results.get()
 
     # End the pool
     pool.close()
