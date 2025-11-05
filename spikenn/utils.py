@@ -30,10 +30,14 @@ class DecisionMap:
 
         self.map_class = np.empty(self.n_neurons, dtype=np.int32) # Class mapping
         self.map_type = np.empty(self.n_neurons, dtype=np.int32) # Target / non-target mapping
+        
+        # Updated by Wonmo
+        # Initialize neuron mask to consider only the first 3 neurons per class at the beginning and increase the number of considered neurons during training
         self.neuron_mask = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons to consider during decision-making (1: consider, 0: ignore)
         for c in range(self.n_classes):
             start= c * self.n_neurons_per_class
             self.neuron_mask[start:start+3] = 1
+        #######
             
         for i in range(self.n_neurons):
             self.map_class[i] = int(i/self.n_neurons_per_class) # class indice
