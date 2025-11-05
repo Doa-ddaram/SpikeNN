@@ -124,8 +124,13 @@ class Readout:
                     winner = n_idx[spike_sort(mem_pots[n_idx], x[n_idx])[0]]
                     if c == y: 
                         target_updates[winner] += 1
+                        
+                        ## Updated by Wonmo
+                        # Activate next neuron if the current winner neuron has been updated more than 1000 times
                         if epoch % 5 == 4 and (target_updates[winner] > 1000 and winner % self.n_neurons_per_class != 0):
                             active_list.append((y, winner))
+                            
+                            
                         if self.save_stats: t_updates_trace[epoch, cnt, winner] = 1
                     else:
                         ntarget_updates[winner] += 1
@@ -136,6 +141,9 @@ class Readout:
                     if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo): 
                         thresholds_trace[epoch, cnt, :] = self.regularizer.thresholds[:]
                     cnt += 1
+                    
+            ## Updated by Wonmo
+            # Activate neurons that are not active yet based on the active_list collected during the epoch
             if epoch % 5 == 4:
                 print("Active set", set(active_list))
                 active_list = list(set(active_list))
@@ -143,6 +151,7 @@ class Readout:
                     if check_list[neuron_idx] == 0:
                         self.activate_neuron(class_idx, neuron_idx)
                         check_list[neuron_idx] = 1
+                        
             # Save some training info
             if self.save_stats:
                 neuron_prec_trace[epoch] /= winning_cnt
@@ -233,16 +242,26 @@ class Readout:
         return acc
 
     
+    ## Updated by Wonmo
+    # Activate the next neuron in the class
     def activate_neuron(self, class_idx, neuron_idx):
         # print(f"neuron {neuron_idx} update too much")
         # print(f"Activating neuron {neuron_idx + 1} of class {class_idx}")
+        
+        # Avoid activating non-target neurons
         if neuron_idx % self.n_neurons_per_class == 0:
             return
-        idx = sum(self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class:(class_idx+1)*self.n_neurons_per_class])
-        if idx >= self.n_neurons_per_class:
-            # print(f"neuron {neuron_idx} Cannot activate next neuron, all neurons of class {class_idx} are already active")
+        
+        # Count the number of active neurons in the class
+        num_active_neurons_in_class = sum(self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class:(class_idx+1)*self.n_neurons_per_class])
+        
+        # Avoid activating more neurons than available
+        if num_active_neurons_in_class >= self.n_neurons_per_class:
+            # print(f"neuron {neuron_idx} Cann1ot activate next neuron, all neurons of class {class_idx} are already active")
             return
-        self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class + idx] = 1
+        
+        # Activate the next non-active neuron
+        self.decision_map.neuron_mask[class_idx * self.n_neurons_per_class + num_active_neurons_in_class] = 1
         
         
         
