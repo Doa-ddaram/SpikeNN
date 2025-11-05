@@ -155,6 +155,8 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
         n_neurons = out_spks.shape[0]
         error = np.zeros(n_neurons, dtype=np.float32)
         
+        # Updated by Wonmo
+        # Exclude non-active neurons from updating the error, spike time, and membrane potential
         for n_ind in range(n_neurons):
             if decision_map.neuron_mask[n_ind] == 0:
                 error[n_ind] = 0
@@ -181,9 +183,15 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
             if np.all(out_spks == max_time): t_base = max_time - ntarget_t_gap
             else: t_base = np.minimum(np.mean(out_spks[out_spks < max_time]), max_time - ntarget_t_gap)
                       
+                      
             # Compute error for neurons to update
             for n_ind in to_update_neurons:
+                
+                # Updated by Wonmo
+                # Skip non-active neurons from calculating error
                 if decision_map.neuron_mask[n_ind] == 0: continue
+                #######
+                
                 # Target neuron
                 if decision_map.get_class(n_ind) == y and decision_map.is_target_neuron(n_ind):
                     # SSTDP training
@@ -211,7 +219,12 @@ def s2stdp(outputs, network_weights, y, decision_map, t_gap, class_inhib, use_ti
         in_spks, out_spks, _ = outputs[layer_ind]
         weights = network_weights[layer_ind].copy()
         for n_ind,error in enumerate(errors[layer_ind]):
+            
+            # Updated by Wonmo
+            # Skip non-active neurons from being updated
             if decision_map.neuron_mask[n_ind] == 0: continue
+            #######
+            
             # No update
             if error == 0: continue
             # Select the learning rate to apply STDP or anti-STDP
