@@ -1,6 +1,6 @@
 import logging, os
 import numpy as np
-from numba import int32
+from numba import int32, float32
 from numba.experimental import jitclass
 
 
@@ -16,7 +16,8 @@ spec = [
     ('n_neurons_per_class', int32),
     ('map_class', int32[:]),
     ('map_type', int32[:]),
-    ('neuron_mask', int32[:]),
+    # ('neuron_active', int32[:]),
+    # ('target_times', float32[:]),
 ]
 @jitclass(spec)
 class DecisionMap:
@@ -31,12 +32,15 @@ class DecisionMap:
         self.map_class = np.empty(self.n_neurons, dtype=np.int32) # Class mapping
         self.map_type = np.empty(self.n_neurons, dtype=np.int32) # Target / non-target mapping
         
+        # self.target_times = np.zeros(self.n_neurons, dtype=np.float32)
+        
         # Updated by Wonmo
-        # Initialize neuron mask to consider only the first 3 neurons per class at the beginning and increase the number of considered neurons during training
-        self.neuron_mask = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons to consider during decision-making (1: consider, 0: ignore)
-        for c in range(self.n_classes):
-            start= c * self.n_neurons_per_class
-            self.neuron_mask[start:start+3] = 1
+        # Initialize neuron mask to consider only the first 2 neurons per class at the beginning and increase the number of considered neurons during training
+        # first 1 neuron per class is non-target neuron, second neuron
+        # self.neuron_active = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons to consider during decision-making (1: consider, 0: ignore)
+        # for c in range(self.n_classes):
+        #     start_idx = c * self.n_neurons_per_class
+        #     self.neuron_active[start_idx:start_idx+5] = 1
         #######
             
         for i in range(self.n_neurons):
@@ -61,17 +65,21 @@ class DecisionMap:
             if self.map_type[i] == 0 and (y is None or self.map_class[i] == y) and (not_y is None or self.map_class[i] != y): inds.append(i)
         return np.array(inds, dtype=np.int32)
         
-    def get_target_mask(self, y=None):
-        idx = []
-        for i in range(self.n_neurons):
-            if self.map_type[i] == 1 and (self.neuron_mask[i] == 1): idx.append(i)
-        return np.array(idx, dtype=np.int32)
+    # def get_target_mask(self, y=None):
+    #     idx = []
+    #     for i in range(self.n_neurons):
+    #         if self.map_type[i] == 1 and (self.neuron_active[i] == 1): idx.append(i)
+    #     return np.array(idx, dtype=np.int32)
+    
+    # def set_target_time(self, n_ind, time):
+    #     """특정 뉴런이 발화해야 할 목표 시간을 설정 (Delay 학습 시 기준점)"""
+    #     self.target_times[n_ind] = time
     
     def get_class(self, n):
         return self.map_class[n]
     
-    def get_mask(self, c):
-        return self.neuron_mask[c]
+    # def get_active(self, c):
+    #     return self.neuron_active[c]
 
 
 
