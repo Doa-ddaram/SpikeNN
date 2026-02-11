@@ -1,9 +1,10 @@
+import sys
+sys.path.insert(0, "/data/spikenn")
 import os
 import json
 import argparse
 import multiprocessing
 from run import main
-
 
 if __name__ == "__main__":
 
