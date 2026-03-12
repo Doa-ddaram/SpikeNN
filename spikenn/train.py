@@ -47,15 +47,8 @@ class S2STDPOptimizer(STDPOptimizer):
 
         # Get the weights of each layer inside of a list
         network_weights = []
-        # network_delays = []
         for layer_ind in range(n_layers):
             network_weights.append(self.network[layer_ind].weights)
-            # network_delays.append(self.network[layer_ind].delays)
-
-        # lr_delay = 0.01
-        # d_min = self.network[-1].d_min
-        # d_max = self.network[-1].d_max        
-
         # Compute the new weights
         stdp_func, stdp_args = self.stdp()
         network_weights = s2stdp(outputs, network_weights, target_ind, decision_map, self.t_gap, self.class_inhib, self.use_time_ranges, self.max_time, self.ap, self.am, self.anti_ap, self.anti_am, stdp_func, stdp_args)
@@ -298,60 +291,6 @@ class CompetitionRegularizerOne(BaseRegularizer):
             self.layer.thresholds_train[winner] += self.thr_lr * (len(n_inds)-1) / len(n_inds) 
             self.layer.thresholds_train[losers] -= self.thr_lr * 1 / len(n_inds)
             
-class BaseDelayRegularizer:
-    __slots__ = ('layer')
-
-    def __init__(self, layer):
-        self.layer = layer
-
-
-    def __call__(self, outputs, y, decision_map):
-        pass
-            
-            
-class DelaySTDP(BaseDelayRegularizer):
-    __slots__ = ('delay_lr', 'delay_anneal', 'd_min', 'd_max')
-
-    def __init__(self, layer, delay_lr, delay_anneal=1, d_min=0.0, d_max=1.0):
-        super().__init__(layer)
-        self.layer = layer
-        self.delay_lr = delay_lr
-        self.delay_anneal = delay_anneal
-        self.d_min = d_min
-        self.d_max = d_max
-
-    def on_epoch_end(self):
-        # Apply annealing
-        self.delay_lr *= self.delay_anneal
-
-    def __call__(self, outputs, y, decision_map):
-        if self.delay_lr <= 0: return
-        # Unpack outputs of forward pass 
-        in_spks, out_spks, mem_pots = outputs[-1]
-        # Get target neurons
-        n_inds = decision_map.get_target_neurons(y)
-        # No delay regulation if < 2 target neurons
-        if len(n_inds) <= 1: return
-        # Get first firing neuron (winner) and the others (losers)
-        sorted_inds = spike_sort(mem_pots[n_inds], out_spks[n_inds])
-        winner = n_inds[sorted_inds[0]]
-        losers = n_inds[sorted_inds[1:]]
-        t_winner = out_spks[winner]
-        # Apply delay regulation only if the winner is a target neuron
-        if decision_map.is_target_neuron(winner):
-            # Decrease delays of winner neuron
-            t_arrivals = in_spks + self.layer.delays[winner][:, np.newaxis]
-            
-            valid_mask = in_spks < 1e5
-            
-            temporal_error = t_arrivals - t_winner
-            # Increase delays of loser neurons
-            
-            self.layer.delays[winner][valid_mask] += self.delay_lr * temporal_error[valid_mask]
-            self.layer.delays[losers] += self.delay_lr * (1 / len(n_inds))
-            # Clip delays to layer limits
-            self.layer.delays = np.clip(self.layer.delays, self.d_min, self.d_max)
-
 
 
 # STDP inferface to store parameters and callable to core function
