@@ -2,7 +2,7 @@ import logging, os
 import numpy as np
 from numba import int32, float32
 from numba.experimental import jitclass
-
+import wandb
 
 
 # A class for decision-making 
@@ -16,8 +16,7 @@ spec = [
     ('n_neurons_per_class', int32),
     ('map_class', int32[:]),
     ('map_type', int32[:]),
-    # ('neuron_active', int32[:]),
-    # ('target_times', float32[:]),
+    ('neuron_active', int32[:]),
 ]
 @jitclass(spec)
 class DecisionMap:
@@ -37,10 +36,10 @@ class DecisionMap:
         # Updated by Wonmo
         # Initialize neuron mask to consider only the first 2 neurons per class at the beginning and increase the number of considered neurons during training
         # first 1 neuron per class is non-target neuron, second neuron
-        # self.neuron_active = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons to consider during decision-making (1: consider, 0: ignore)
-        # for c in range(self.n_classes):
-        #     start_idx = c * self.n_neurons_per_class
-        #     self.neuron_active[start_idx:start_idx+5] = 1
+        self.neuron_active = np.zeros(self.n_neurons, dtype=np.int32) # Mask for neurons to consider during decision-making (1: consider, 0: ignore)
+        for c in range(self.n_classes):
+            start_idx = c * self.n_neurons_per_class
+            self.neuron_active[start_idx:start_idx+5] = 1
         #######
             
         for i in range(self.n_neurons):
@@ -72,14 +71,13 @@ class DecisionMap:
     #     return np.array(idx, dtype=np.int32)
     
     # def set_target_time(self, n_ind, time):
-    #     """특정 뉴런이 발화해야 할 목표 시간을 설정 (Delay 학습 시 기준점)"""
     #     self.target_times[n_ind] = time
     
     def get_class(self, n):
         return self.map_class[n]
     
-    # def get_active(self, c):
-    #     return self.neuron_active[c]
+    def get_active(self, c):
+        return self.neuron_active[c]
 
 
 
@@ -138,3 +136,54 @@ class Logger:
             logger = logging.getLogger()
             logger.handlers[0].stream.close()
             logger.removeHandler(logger.handlers[0])
+            
+# class wandblogger:
+#     def __init__(self, project_name, run_name = None, config = None, output_path = None, log_to_file = False):
+#         self.log_to_file = log_to_file
+#         self.log_path = output_path + ('/' if output_path and output_path[-1] != '/' else '') if output_path else None
+        
+#         # init wandb
+
+#         wandb.init(project=project_name, name= run_name, config= config)
+        
+#         if log_to_file and self.log_path:
+#             if not os.path.exists(self.log_path):
+#                 os.makedirs(self.log_path)
+#             filename = os.path.join(self.logt_path, 'readout_log.txt')
+#             logging.basicConfig(filename= filename, level=logging.INFO, format = '')
+        
+#     def log(self,msg, step = None):
+#         print(msg)
+        
+#         if isinstance(msg, dict):
+#             wandb.log(msg, step = step)
+#         else:
+#             if self.log_to_file:
+#                 logging.info(msg)
+                
+#     def log_metrics(self, metrics_dict, step = None):
+#         wandb.log(metrics_dict, step = step)
+    
+#     def stop(self):
+#         wandb.finish()
+#         if self.log_to_file:
+#             logger = logging.getLogger()
+#             for handler in logger.handlers[:]:
+#                 handler.close()
+#                 logger.removeHandler(handler)
+
+class WandbLogger:
+    def __init__(self, project_name = None, run_name = None, config = None):
+        wandb.init(project= project_name,
+                   name=run_name,
+                   config = config)
+        self.log_path = None
+        
+    def log(self,msg, step = None):
+        if isinstance(msg, dict):
+            wandb.log(msg, step= step)
+        else:
+            print(msg)
+            
+    def stop(self):
+        wandb.finish()
