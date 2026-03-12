@@ -1,5 +1,3 @@
-import sys
-sys.path.insert(0, "/data/spikenn")
 import os
 import json
 import argparse
@@ -21,13 +19,17 @@ if __name__ == "__main__":
     with open(args.config_path, "r") as f:
         config = json.load(f)
 
-    # Create a pool of workers for parallel processing
-    pool = multiprocessing.Pool(processes=int(args.n_proc))
+    # updated by Wonmo
+    # wandb does not work well with multiprocessing, so changed to execute K-fold sequentially as a temporary solution
+    for i in range(int(args.K)):
+        main(f"{args.input_dir}/{i}", config, f"{args.output_dir}/{i}/", i)
+    # # Create a pool of workers for parallel processing
+    # pool = multiprocessing.Pool(processes=int(args.n_proc))
 
-    results = pool.starmap_async(main, [(f"{args.input_dir}/{i}", config, f"{args.output_dir}/{i}/", i) for i in range(int(args.K))])
+    # results = pool.starmap_async(main, [(f"{args.input_dir}/{i}", config, f"{args.output_dir}/{i}/", i) for i in range(int(args.K))])
     
-    results.get()
+    # results.get()
 
-    # End the pool
-    pool.close()
-    pool.join()
+    # # End the pool
+    # pool.close()
+    # pool.join()
