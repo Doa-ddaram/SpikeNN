@@ -6,9 +6,9 @@ from spikenn._impl import weight_norm, forward_fc
 # Base spiking layer with IF / LIF neurons
 # TODO: Adapt for convolutional architectures 
 class SpikingLayer:
-    __slots__ = ('shape', 'weights', 'thresholds', 'thresholds_train', 'mask_in', 'mask_out', 'leak_tau', 'w_norm', 'w_min', 'w_max', 'max_time', 'train_mode', 'd_min', 'd_max', 'delays')
+    __slots__ = ('shape', 'weights', 'thresholds', 'thresholds_train', 'mask_in', 'mask_out', 'leak_tau', 'w_norm', 'w_min', 'w_max', 'max_time', 'train_mode')
 
-    def __init__(self, shape, firing_threshold, leak_tau, w_init_normal, w_init_mean, w_init_std, w_norm, w_min, w_max, max_time, d_min=1e-10, d_max=1.0):
+    def __init__(self, shape, firing_threshold, leak_tau, w_init_normal, w_init_mean, w_init_std, w_norm, w_min, w_max, max_time):
         self.shape = shape # (N,M): N is the number of output neurons and M the number of input neurons
         self.leak_tau = leak_tau # For LIF neurons, set to None for IF
         self.w_min = w_min # For weight clipping
@@ -18,8 +18,6 @@ class SpikingLayer:
         self.mask_in = None # For dropout on the input neurons
         self.mask_out = None # For dropout on the output neurons
         self.train_mode = False # For selecting the thresholds during forward pass
-        self.d_min = d_min
-        self.d_max = d_max
 
         # Weights initialization
         if w_init_normal: # Normal distribution
@@ -32,9 +30,7 @@ class SpikingLayer:
         if w_norm: # Weight normalization
             self.w_norm = self.weights.sum(1) # normalization factor
             self.normalize_weights()
-        
-        self.delays = np.random.uniform(d_min, d_max, size=(self.shape[0], self.shape[1]))
-        
+
         # Clip weights
         self.clip_weights()
 
@@ -115,13 +111,13 @@ class Fc(SpikingLayer):
 
     def __init__(self, input_size, n_neurons, firing_threshold, w_init_normal,
                  w_init_mean=0.5, w_init_std=0.01, leak_tau=None,
-                 w_norm=False, w_min=0, w_max=1, max_time=1, d_min=0.0, d_max=1.0):
-        super().__init__((n_neurons, input_size), firing_threshold, leak_tau, w_init_normal, w_init_mean, w_init_std, w_norm, w_min, w_max, max_time, d_min, d_max)
+                 w_norm=False, w_min=0, w_max=1, max_time=1):
+        super().__init__((n_neurons, input_size), firing_threshold, leak_tau, w_init_normal, w_init_mean, w_init_std, w_norm, w_min, w_max, max_time)
         self.input_size = input_size
         self.n_neurons = n_neurons
 
     # NOTE: The implementation is in a function optimized with Numba to accelerate CPU computations.
-    def __call__(self, sample):
+    def __call__(self, sample, decision_map):
         # Convert dense sample to SpikingDataset format (needed for multi-layer networks only)
         sample = self.convert_input(sample)
         # Select the employed thresholds
@@ -136,5 +132,5 @@ class Fc(SpikingLayer):
             mask_in=self.mask_in,
             mask_out=self.mask_out,
             max_time=self.max_time,
-            delays=self.delays
+            active_list = decision_map.neuron_active
         )
