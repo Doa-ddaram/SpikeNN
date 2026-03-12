@@ -2,9 +2,15 @@ import sys
 import numpy as np
 from tqdm import tqdm
 from spikenn.snn import Fc
-from spikenn.train import S2STDPOptimizer, RSTDPOptimizer, S4NNOptimizer, AdditiveSTDP, MultiplicativeSTDP, BaseRegularizer, CompetitionRegularizerTwo, CompetitionRegularizerOne, DelaySTDP
-from spikenn.utils import DecisionMap, Logger, EarlyStopper
-# from spikenn._impl import spike_sort, mask_neuron
+from spikenn.train import S2STDPOptimizer, RSTDPOptimizer, S4NNOptimizer, AdditiveSTDP, MultiplicativeSTDP, BaseRegularizer, CompetitionRegularizerTwo, CompetitionRegularizerOne
+
+
+# Updated by Wonmo
+# logger changed to wandb
+# from spikenn.utils import DecisionMap, Logger, EarlyStopper
+from spikenn.utils import DecisionMap, WandbLogger, EarlyStopper
+import wandb
+
 from spikenn._impl import spike_sort
 
 np.set_printoptions(suppress=True) # Remove scientific notation
@@ -14,10 +20,9 @@ np.set_printoptions(suppress=True) # Remove scientific notation
 # NOTE: It is possible to define a multi-layer architecture but the current code does not support multi-layer training
 class Readout:
 
-    def __init__(self, n_classes, network, optimizer, regularizer, delays_optimizer, config, logger=Logger()):
+    def __init__(self, n_classes, network, optimizer, regularizer, config, logger=None):
         self.network = network # List of SpikingLayer instances
         self.optimizer = optimizer # STDP-based optimizer instance
-        self.delays_optimizer = delays_optimizer # Delays optimizer instance
         self.regularizer = regularizer # Regularizer instance
         self.config = config # Dict of training parameters
         self.logger = logger # Logger instance
@@ -100,7 +105,10 @@ class Readout:
                     # in_spks is a dense array of input spike timestamps (n_in,)
                     # x is a dense array of output spike timestamps (n_out,)
                     # mem_pots is a dense array of membrane potentials at spike time (n_out,)
-                    in_spks, x, mem_pots = layer(x)
+                    
+                    # Updated by Wonmo
+                    # Modified to pass decision map to layer to consider neurons assigned per class in the forward pass
+                    in_spks, x, mem_pots = layer(x, self.decision_map)
                     # Save outputs for weight update
                     outputs.append((in_spks, x, mem_pots)) 
                     # Save stats
@@ -118,8 +126,6 @@ class Readout:
                 self.regularizer(outputs, y, self.decision_map)
                 self.optimizer(outputs, y, self.decision_map)
                 
-                if hasattr(self, 'delays_optimizer') and self.delays_optimizer is not None:
-                    self.delays_optimizer(outputs, y, self.decision_map)
                 # Stats when multiple neurons per class (i.e. with NCGs)
                 for c in range(self.n_classes):
                     n_idx = np.arange(c* self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
@@ -127,10 +133,10 @@ class Readout:
                     if c == y: 
                         target_updates[winner] += 1
                         
-                        ## Updated by Wonmo
+                        # Updated by Wonmo
                         # Activate next neuron if the current winner neuron has been updated more than 1000 times
-                        # if (target_updates[winner] > 500 and winner % self.n_neurons_per_class != 0):
-                        #     active_list.append((y, winner))
+                        if (target_updates[winner] > 500 and winner % self.n_neurons_per_class != 0):
+                            active_list.append((y, winner))
                             
                             
                         if self.save_stats: t_updates_trace[epoch, cnt, winner] = 1
@@ -144,42 +150,42 @@ class Readout:
                         thresholds_trace[epoch, cnt, :] = self.regularizer.thresholds[:]
                     cnt += 1
                     
-            ## Updated by Wonmo
+            # Updated by Wonmo
             # Activate neurons that are not active yet based on the active_list collected during the epoch
-            # active_list = list(set(active_list))
-            # for class_idx, neuron_idx in active_list:
-            #     if check_list[neuron_idx] == 0:
-            #         self.activate_neuron(class_idx, neuron_idx)
-            #         check_list[neuron_idx] = 1
-                        
+            active_list = list(set(active_list))
+            for class_idx, neuron_idx in active_list:
+                if check_list[neuron_idx] == 0:
+                    self.activate_neuron(class_idx, neuron_idx)
+                    check_list[neuron_idx] = 1
+            
             # Save some training info
-            if self.save_stats:
-                neuron_prec_trace[epoch] /= winning_cnt
-                np.save(f"{self.logger.log_path}/neuron_prec_trace.npy", neuron_prec_trace)
-                np.save(f"{self.logger.log_path}/thresholds_trace.npy", thresholds_trace)
-                np.save(f"{self.logger.log_path}/t_updates_trace.npy", t_updates_trace)
-                np.save(f"{self.logger.log_path}/nt_updates_trace.npy", nt_updates_trace)
-                np.save(f"{self.logger.log_path}/weights.npy", self.network[-1].weights)
+            # if self.save_stats:
+            #     neuron_prec_trace[epoch] /= winning_cnt
+            #     np.save(f"{self.logger.log_path}/neuron_prec_trace.npy", neuron_prec_trace)
+            #     np.save(f"{self.logger.log_path}/thresholds_trace.npy", thresholds_trace)
+            #     np.save(f"{self.logger.log_path}/t_updates_trace.npy", t_updates_trace)
+            #     np.save(f"{self.logger.log_path}/nt_updates_trace.npy", nt_updates_trace)
+            #     np.save(f"{self.logger.log_path}/weights.npy", self.network[-1].weights)
 
             # Training logs
             train_acc = train_acc / train_dataset.shape[0]
-            if self.full_logs:
-                # Stats when multiple neurons per class (i.e. with NCGs)  
-                if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo):
-                    for c in range(self.n_classes):
-                        n_idx = np.arange(c*self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
-                        self.logger.log(target_updates[n_idx])
-                        self.logger.log(ntarget_updates[n_idx])
-                        self.logger.log(np.round(self.regularizer.thresholds[n_idx],0))
-                        # self.logger.log(self.decision_map.get_active(n_idx))
-                        self.logger.log("")
-            for i, layer in enumerate(self.network):
-                self.logger.log(f"=== Layer {i} ===")
-                self.logger.log(f"\tMean weights: {round(layer.weights.mean(),4)} +- {round(layer.weights.std(),4)} (min:{round(layer.weights.min(),3)} ; max:{round(layer.weights.max(),3)})")
-                self.logger.log(f"\tMin firing time: {np.mean(min_out_spks[i])} +- {np.std(min_out_spks[i])}")
-                self.logger.log(f"\tMean firing time: {np.mean(mean_out_spks[i])} +- {np.std(mean_out_spks[i])}")
-                # self.logger.log(f"\tMean delays time: {round(layer.delays.mean(),4)} +- {round(layer.delays.std(),4)} (min:{round(layer.delays.min(),3)} ; max:{round(layer.delays.max(),3)})")
-            self.logger.log(f"Accuracy on training set after epoch {epoch}: {round(train_acc,4)}")
+            
+            self.logger.log(f"Epoch {epoch}: Train Acc {train_acc:.4f}")
+            # if self.full_logs:
+            #     # Stats when multiple neurons per class (i.e. with NCGs)  
+            #     if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo):
+            #         for c in range(self.n_classes):
+            #             n_idx = np.arange(c*self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
+            #             self.logger.log(target_updates[n_idx])
+            #             self.logger.log(ntarget_updates[n_idx])
+            #             self.logger.log(np.round(self.regularizer.thresholds[n_idx],0))
+            #             self.logger.log("")
+            # for i, layer in enumerate(self.network):
+            #     self.logger.log(f"=== Layer {i} ===")
+            #     self.logger.log(f"\tMean weights: {round(layer.weights.mean(),4)} +- {round(layer.weights.std(),4)} (min:{round(layer.weights.min(),3)} ; max:{round(layer.weights.max(),3)})")
+            #     self.logger.log(f"\tMin firing time: {np.mean(min_out_spks[i])} +- {np.std(min_out_spks[i])}")
+            #     self.logger.log(f"\tMean firing time: {np.mean(mean_out_spks[i])} +- {np.std(mean_out_spks[i])}")
+            # self.logger.log(f"Accuracy on training set after epoch {epoch}: {round(train_acc,4)}")
             
             # Annealing on the learning rates
             self.optimizer.anneal()
@@ -187,9 +193,6 @@ class Readout:
             # Update regularizer
             self.regularizer.on_epoch_end()
             
-            if self.delays_optimizer is not None:
-                self.delays_optimizer.on_epoch_end()
-
             # Gridsearch early stopping
             if epoch > 2 and train_acc < gridsearch_stop_acc: return None
 
@@ -213,15 +216,54 @@ class Readout:
                             test_acc = self.predict(test_dataset)
                             self.logger.log(f"Accuracy on test set after epoch {epoch}: {round(test_acc,4)}")
                         break
-           
- 
+            
             ####################################
             ############### TEST ###############
 
             if test_dataset is not None:
                 test_acc = self.predict(test_dataset)
                 self.logger.log(f"Accuracy on test set after epoch {epoch}: {round(test_acc,4)}")
+            
+            ###########################################
+            ######### Recoding Stats to Wandb #########
+            
+                        
+            log_data = {
+                "epoch" : epoch,
+                "train/accuracy" : train_acc,
+                "layer/mean_weight" : self.network[-1].weights.mean(),
+                "layer/weight_dist" : wandb.Histogram(self.network[-1].weights),
+                "val/accuracy" : val_acc if val_dataset is not None else None,
+                "test/accuracy" : test_acc if test_dataset is not None else None
+            }
+            
+            
+            # Update log results for the current epoch
+            self.logger.log(log_data, step = epoch + 1)
+            
+            
+            if self.full_logs:
+                # 1. Prepare dictionary for visualization
+                wandb_stats = {}
 
+                for c in range(self.n_classes):
+                    n_idx = np.arange(c * self.n_neurons_per_class, (c + 1) * self.n_neurons_per_class)
+                    
+                    # Visualize Target Updates per class (bar chart)
+                    # Can check the number of updates for each neuron as bars in wandb dashboard
+                    t_data = [[f"neuron_{i}", val] for i, val in enumerate(target_updates[n_idx])]
+                    table_t = wandb.Table(data=t_data, columns=["neuron", "updates"])
+                    wandb_stats[f"Class_{c}/Target_Updates"] = wandb.plot.bar(table_t, "neuron", "updates", title=f"Class {c} Target Updates")
+
+                    # Average threshold values per class (for line graph)
+                    # If multiple neurons, compute average or record value of specific representative neuron
+                    wandb_stats[f"Class_{c}/Avg_Threshold"] = np.mean(self.regularizer.thresholds[n_idx])
+                    
+                    # (Optional) Non-Target Updates histogram
+                    wandb_stats[f"Class_{c}/NonTarget_Updates_Dist"] = wandb.Histogram(ntarget_updates[n_idx])
+
+                # 2. Send integrated logs
+                self.logger.log(wandb_stats)
 
         return (train_acc,
                 val_acc if val_dataset is not None else None,
@@ -237,7 +279,11 @@ class Readout:
         for x, y in dataset:
             # Forward pass
             for layer in self.network:
-                _, x, mem_pots = layer(x)
+                
+                # Updated by Wonmo
+                # Modified to pass decision map to layer to consider neurons assigned per class in the forward pass
+                
+                _, x, mem_pots = layer(x, self.decision_map)
             # Prediction 
             w_ind = spike_sort(mem_pots, x)[0]
             predicted = self.decision_map.get_class(w_ind)
@@ -246,35 +292,37 @@ class Readout:
         return acc
 
     
-    ## Updated by Wonmo
+    # Updated by Wonmo
     # Activate the next neuron in the class
-    # def activate_neuron(self, class_idx, neuron_idx):
-    #     # print(f"neuron {neuron_idx} update too much")
-    #     # print(f"Activating neuron {neuron_idx + 1} of class {class_idx}")
+    def activate_neuron(self, class_idx, neuron_idx):
+        # print(f"neuron {neuron_idx} update too much")
+        # print(f"Activating neuron {neuron_idx + 1} of class {class_idx}")
         
-    #     # Avoid activating non-target neurons
-    #     if neuron_idx % self.n_neurons_per_class == 0:
-    #         return
+        # Avoid activating non-target neurons
+        if neuron_idx % self.n_neurons_per_class == 0:
+            return
         
         # Count the number of active neurons in the class
-        # num_active_neurons_in_class = sum(self.decision_map.neuron_active[class_idx * self.n_neurons_per_class:(class_idx+1)*self.n_neurons_per_class])
+        num_active_neurons_in_class = sum(self.decision_map.neuron_active[class_idx * self.n_neurons_per_class:(class_idx+1)*self.n_neurons_per_class])
         
-        # # Avoid activating more neurons than available
-        # if num_active_neurons_in_class >= self.n_neurons_per_class:
-        #     # print(f"neuron {neuron_idx} Cann1ot activate next neuron, all neurons of class {class_idx} are already active")
-        #     return
+        # Avoid activating more neurons than available
+        if num_active_neurons_in_class >= self.n_neurons_per_class:
+            print(f"neuron {neuron_idx} Cannot activate next neuron, all neurons of class {class_idx} are already active")
+            return
         
         
-        # active_idx = class_idx * self.n_neurons_per_class + num_active_neurons_in_class
-        # # Activate the next non-active neuron
-        # self.decision_map.neuron_active[active_idx] = 1
+        active_idx = class_idx * self.n_neurons_per_class + num_active_neurons_in_class
+        # Activate the next non-active neuron
+        self.decision_map.neuron_active[active_idx] = 1
         
-        # layer = self.network[-1]
-        # base_w = layer.weights[neuron_idx].copy()
-        # layer.weights[active_idx] = base_w
+        layer = self.network[-1]
+        base_w = layer.weights[neuron_idx].copy()
         
-        # layer.thresholds[active_idx] = layer.thresholds[neuron_idx]
-        # layer.thresholds_train[active_idx] = layer.thresholds_train[neuron_idx]
+        # Update weights of the new active neuron by adding small noise to the weights of the current neuron
+        layer.weights[active_idx] = base_w + np.random.normal(0, 0.01, size=base_w.shape)
+        
+        layer.thresholds[active_idx] = layer.thresholds[neuron_idx]
+        layer.thresholds_train[active_idx] = layer.thresholds_train[neuron_idx]
         
         
     # Create a Readout instance from a dict config
@@ -370,24 +418,26 @@ class Readout:
         else:
             regularizer = BaseRegularizer(layer=network[-1]) # No regularization
             
-        if "delays" in config:
-            use_delays = config["delays"].get('use_delays', True)
-            if use_delays:
-                delays = DelaySTDP(layer=network[-1],
-                                   delay_lr=config["delays"]["delay_lr"],
-                                   delay_anneal=config["delays"]["delay_anneal"],
-                                   d_min=network[-1].d_min,
-                                   d_max=network[-1].d_max)
-            else:
-                delays = None
-        else:
-            delays = None
-
         # Init logger
-        log_to_file = output_dir is not None
-        logger = Logger(output_dir, log_to_file)
+        log_to_file = None
+        
+        # Integrate necessary config information into Config dict to replace logger with wandb
+        Config = {
+                "epochs" : config["trainer"].get("epochs", 0),
+                "limit_neurons" : config["network"][-1].get("n_neurons", 0),
+                "STDP_method" : config_optim["method"]
+            }
+        
+        from datetime import datetime
+        run_id = datetime.now().strftime("%m%d_%H%M%S")
+        
+        logger = WandbLogger(
+            project_name="SNN_Project",
+            run_name=run_id,
+            config=Config
+        )
 
         # Training parameters
         config_trainer = config["trainer"]
         
-        return cls(n_classes=n_classes, network=network, optimizer=optim, regularizer=regularizer, config=config_trainer, logger=logger, delays_optimizer=delays)
+        return cls(n_classes=n_classes, network=network, optimizer=optim, regularizer=regularizer, config=config_trainer, logger=logger)
