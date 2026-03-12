@@ -8,3 +8,4 @@ plots/
 logs/
 output/
 input/
+wandb/
