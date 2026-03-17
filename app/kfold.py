@@ -1,3 +1,5 @@
+import sys
+sys.path.insert(0, "/data/0312/SpikeNN/")
 import os
 import json
 import argparse
@@ -13,6 +15,7 @@ if __name__ == "__main__":
     parser.add_argument("config_path", type=str, help="JSON config path")
     parser.add_argument("--K", type=int, default=10, help="Number of folds")
     parser.add_argument("--n_proc", type=int, default=10, help="Number of processes")
+    parser.add_argument("--run_name", type=str, help="name of wandb recording")
     args = parser.parse_args()
 
     # Read the JSON config
@@ -22,7 +25,8 @@ if __name__ == "__main__":
     # updated by Wonmo
     # wandb does not work well with multiprocessing, so changed to execute K-fold sequentially as a temporary solution
     for i in range(int(args.K)):
-        main(f"{args.input_dir}/{i}", config, f"{args.output_dir}/{i}/", i)
+        print('Running fold', i)
+        main(f"{args.input_dir}/{i}", config, f"{args.output_dir}/{i}/", i, args.run_name + f"_fold_{i}" if args.run_name else None)
     # # Create a pool of workers for parallel processing
     # pool = multiprocessing.Pool(processes=int(args.n_proc))
 
