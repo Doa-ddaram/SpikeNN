@@ -6,7 +6,7 @@ from readout import Readout
 from spikenn.dataset import SpikingDataset
 
 
-def main(dataset_path, config, output_dir, seed=0):
+def main(dataset_path, config, output_dir, seed=0, run_name=None):
     # Seeding
     np.random.seed(int(seed))
 
@@ -24,7 +24,7 @@ def main(dataset_path, config, output_dir, seed=0):
     if empty_dataset: raise RuntimeError("Some input samples do not contain any spike.")
 
     # Define the model
-    model = Readout.init_from_dict(config, trainset.shape[1], n_classes, output_dir, trainset.max_time)
+    model = Readout.init_from_dict(config, trainset.shape[1], n_classes, output_dir, run_name, trainset.max_time)
     model.logger.log(config)
 
     # Train the model
@@ -41,10 +41,11 @@ if __name__ == "__main__":
     parser.add_argument("output_dir", type=str, help="Output data directory")
     parser.add_argument("config_path", type=str, help="JSON config path")
     parser.add_argument("--seed", nargs="?", type=int, default=0, help="Random seed")
+    parser.add_argument("--run_name", type=str, help="name of wandb recording")
     args = parser.parse_args()
 
     # Read the JSON config
     with open(args.config_path, "r") as f:
         config = json.load(f)
 
-    main(args.input_dir, config, args.output_dir, args.seed)
+    main(args.input_dir, config, args.output_dir, args.seed, args.run_name)
