@@ -55,13 +55,13 @@ class DecisionMap:
     def get_target_neurons(self, y=None):
         inds = []
         for i in range(self.n_neurons):
-            if self.map_type[i] == 1 and (y is None or self.map_class[i] == y): inds.append(i)
+            if self.map_type[i] == 1 and (y is None or self.map_class[i] == y) and self.neuron_active[i] == 1: inds.append(i)
         return np.array(inds, dtype=np.int32)
 
     def get_non_target_neurons(self, y=None, not_y=None):
         inds = []
         for i in range(self.n_neurons):
-            if self.map_type[i] == 0 and (y is None or self.map_class[i] == y) and (not_y is None or self.map_class[i] != y): inds.append(i)
+            if self.map_type[i] == 0 and (y is None or self.map_class[i] == y) and (not_y is None or self.map_class[i] != y) and self.neuron_active[i] == 1: inds.append(i)
         return np.array(inds, dtype=np.int32)
         
     # def get_target_mask(self, y=None):
