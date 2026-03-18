@@ -171,21 +171,33 @@ class Readout:
             train_acc = train_acc / train_dataset.shape[0]
             
             self.logger.log(f"Epoch {epoch}: Train Acc {train_acc:.4f}")
-            # if self.full_logs:
-            #     # Stats when multiple neurons per class (i.e. with NCGs)  
-            #     if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo):
-            #         for c in range(self.n_classes):
-            #             n_idx = np.arange(c*self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
-            #             self.logger.log(target_updates[n_idx])
-            #             self.logger.log(ntarget_updates[n_idx])
-            #             self.logger.log(np.round(self.regularizer.thresholds[n_idx],0))
-            #             self.logger.log("")
-            # for i, layer in enumerate(self.network):
-            #     self.logger.log(f"=== Layer {i} ===")
-            #     self.logger.log(f"\tMean weights: {round(layer.weights.mean(),4)} +- {round(layer.weights.std(),4)} (min:{round(layer.weights.min(),3)} ; max:{round(layer.weights.max(),3)})")
-            #     self.logger.log(f"\tMin firing time: {np.mean(min_out_spks[i])} +- {np.std(min_out_spks[i])}")
-            #     self.logger.log(f"\tMean firing time: {np.mean(mean_out_spks[i])} +- {np.std(mean_out_spks[i])}")
-            # self.logger.log(f"Accuracy on training set after epoch {epoch}: {round(train_acc,4)}")
+            if self.full_logs:
+                # Stats when multiple neurons per class (i.e. with NCGs)  
+                if self.n_neurons_per_class > 1 and isinstance(self.regularizer, CompetitionRegularizerTwo):
+                    for c in range(self.n_classes):
+                        n_idx = np.arange(c*self.n_neurons_per_class, (c+1)*self.n_neurons_per_class)
+                        self.logger.logging(target_updates[n_idx])
+                        self.logger.logging(ntarget_updates[n_idx])
+                        self.logger.logging(np.round(self.regularizer.thresholds[n_idx],0))
+                        self.logger.logging("")
+            for i, layer in enumerate(self.network):
+                self.logger.logging(f"=== Layer {i} ===")
+                
+                #### Updated by Wonmo
+                # Log the weights of the active neurons in the output layer (i.e. neurons that are assigned to a class in the decision map) to better analyze the training dynamics of the output layer
+                active_weights = layer.weights[self.decision_map.neuron_active == 1]
+                if active_weights.size > 0:
+                    mean_w = active_weights.mean()
+                    std_w = active_weights.std()
+                    min_w = active_weights.min()
+                    max_w = active_weights.max()
+                    self.logger.logging(f"\tMean activate weights: {round(mean_w, 4)} +- {round(std_w, 4)} (min:{round(min_w, 3)} ; max:{round(max_w, 3)})")
+                else:
+                    self.logger.logging("\tNo active neurons yet.")
+   
+                self.logger.logging(f"\tMin firing time: {np.mean(min_out_spks[i])} +- {np.std(min_out_spks[i])}")
+                self.logger.logging(f"\tMean firing time: {np.mean(mean_out_spks[i])} +- {np.std(mean_out_spks[i])}")
+            self.logger.logging(f"Accuracy on training set after epoch {epoch}: {round(train_acc,4)}")
             
             # Annealing on the learning rates
             self.optimizer.anneal()
@@ -282,8 +294,9 @@ class Readout:
                 
                 # Updated by Wonmo
                 # Modified to pass decision map to layer to consider neurons assigned per class in the forward pass
-                
                 _, x, mem_pots = layer(x, self.decision_map)
+                
+                
             # Prediction 
             w_ind = spike_sort(mem_pots, x)[0]
             predicted = self.decision_map.get_class(w_ind)
@@ -319,7 +332,7 @@ class Readout:
         base_w = layer.weights[neuron_idx].copy()
         
         # Update weights of the new active neuron by adding small noise to the weights of the current neuron
-        layer.weights[active_idx] = base_w + np.random.normal(0, 0.01, size=base_w.shape)
+        layer.weights[active_idx] = base_w + np.random.normal(0, 0.001, size=base_w.shape)
         
         layer.thresholds[active_idx] = layer.thresholds[neuron_idx]
         layer.thresholds_train[active_idx] = layer.thresholds_train[neuron_idx]
@@ -327,7 +340,7 @@ class Readout:
         
     # Create a Readout instance from a dict config
     @classmethod
-    def init_from_dict(cls, config, input_shape, n_classes, output_dir, max_time):
+    def init_from_dict(cls, config, input_shape, n_classes, output_dir, run_name, max_time):
         
         # Init network
         network = []
@@ -419,7 +432,7 @@ class Readout:
             regularizer = BaseRegularizer(layer=network[-1]) # No regularization
             
         # Init logger
-        log_to_file = None
+        log_to_file = output_dir is not None
         
         # Integrate necessary config information into Config dict to replace logger with wandb
         Config = {
@@ -428,13 +441,13 @@ class Readout:
                 "STDP_method" : config_optim["method"]
             }
         
-        from datetime import datetime
-        run_id = datetime.now().strftime("%m%d_%H%M%S")
         
         logger = WandbLogger(
             project_name="SNN_Project",
-            run_name=run_id,
-            config=Config
+            run_name=run_name,
+            config=Config,
+            output_path=output_dir,
+            log_to_file=log_to_file
         )
 
         # Training parameters
