@@ -173,11 +173,34 @@ class Logger:
 #                 logger.removeHandler(handler)
 
 class WandbLogger:
-    def __init__(self, project_name = None, run_name = None, config = None):
+    def __init__(self, project_name = None, run_name = None, config = None, log_to_file=False, output_path = None):
         wandb.init(project= project_name,
                    name=run_name,
                    config = config)
-        self.log_path = None
+        if log_to_file: assert output_path is not None
+        self.log_to_file = log_to_file
+        self.log_path = None if output_path is None else output_path + ('/' if output_path[-1] != '/' else '')
+        if output_path is not None:
+            # Compute run version to create a unique file
+            version = 0
+            while True:
+                ok=True
+                for file,type in [("log","txt"), ("config","json"), ("weights","npy")]: # TODO: Make it more robust
+                    filename = os.path.join(output_path, f"readout_{file}{'' if version == 0 else f'_{version}'}.{type}")
+                    if os.path.exists(filename): ok=False
+                if ok: break
+                else: version += 1
+            self.exp_version = '' if version == 0 else f'_{version}'
+            if log_to_file:
+                self.create_log_dir()
+                # Name of the log file
+                filename = self.log_path + f'readout_log{self.exp_version}.txt'
+                # Init logger
+                logging.basicConfig(filename=filename, level=logging.INFO, format='')
+
+    def create_log_dir(self):
+        # Create log directory if it does not exist
+        if self.log_path is not None and not os.path.exists(self.log_path): os.makedirs(self.log_path)
         
     def log(self,msg, step = None):
         if isinstance(msg, dict):
@@ -185,5 +208,15 @@ class WandbLogger:
         else:
             print(msg)
             
+    def logging(self, msg):
+        print(msg) # Print to console
+        if self.log_to_file: # Print to file
+            logging.info(msg)
+        
+            
     def stop(self):
         wandb.finish()
+        if self.log_to_file:
+            logger = logging.getLogger()
+            logger.handlers[0].stream.close()
+            logger.removeHandler(logger.handlers[0])
