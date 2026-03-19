@@ -10,7 +10,7 @@ Code is adapted from https://gitlab.univ-lille.fr/fox/snn-pcn/
 """
 
 def load_data(kind='train'):
-    base_url = 'http://yann.lecun.com/exdb/mnist/'
+    base_url = 'https://ossci-datasets.s3.amazonaws.com/mnist/'
     labels_filename = '%s-labels-idx1-ubyte.gz' % kind
     images_filename = '%s-images-idx3-ubyte.gz' % kind
 
