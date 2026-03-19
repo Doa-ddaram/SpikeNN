@@ -45,20 +45,26 @@ python3 app/generate_dataset.py /input/X_train.npy /input/y_train.npy /output/tr
 - `X_train.npy`: numpy array of shape *(N_samples, D1, ..., DN)*, where each value is a spike timestamp.
 - `y_train.npy`: numpy array of shape *(N_samples,)*, where each value is a class label.
 
+### Preprocessing (DataSet: CIFAR-10)
+
+```
+cd ft-extract/dataset && python3 get_cifar10.py
+
+cd ../STDP-CSNN/csnn && mkdir -p build/ && cd build/ && cmake ../ -DCMAKE_BUILD_TYPE=Release && make 
+
+cd ../.. && for i in {0..9}; do python3 run.py ../dataset/<DATASET>/kfold/$i/ ../extracted/STDP-CSNN/<DATASET>/kfold/$i/ csnn/config/<DATASET>.json --seed=$i; done
+
+```
+
 
 ### Run 
 
 Quick Start:
 
-```
-python -m generate_cifar10
-mkdir input & mkdir output
-python -m app.generate_dataset input/X_train.npy input/y_train.npy input/trainset.npy
-python -m app.generate_dataset input/X_val.npy input/y_val.npy input/valset.npy
-python -m app.generate_dataset input/X_test.npy input/y_test.npy input/testset.npy
 
 if you want model(s2stdp) and NCG method,
 
+```
 python3 app/run.py input/ output/ config/STDP-CSNN/CIFAR10/s2stdp+ncg.json
 ```
 
@@ -69,7 +75,7 @@ python3 app/run.py /input/data/dir/ /output/data/dir/ /config/file [--seed 0]
 
 To start a K-fold run:
 ```
-python3 app/kfold.py /input/data/dir/ /output/data/dir/ /config/file [--K 10] [--n_proc 10]
+python3 app/kfold.py /input/data/dir/ /output/data/dir/ /config/file [--K 10] [--n_proc 10] [--run_name <project_name>]
 ```
 When the run is done, you can use `python3 app/get_kfold_score.py /output/data/dir/` to compute the mean accuracy.
 
