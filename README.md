@@ -134,6 +134,51 @@ Here are the names of the configuration files used in for the ablation study on 
 
 In `app/readout.py`, the variable `self.save_stats` must be set to `True` to save the training logs used to generate the figures.
 
+### 5.5 CIFAR-10 neuron-allocation comparison (short run)
+
+The following three cases were compared on the same extracted STDP-CSNN features:
+
+- Dynamic max 20 neurons per class (`dynamic20`)
+- Fixed 20 neurons per class (`fixed20`)
+- Fixed 10 neurons per class (`fixed10`)
+
+Common feature input path:
+
+```
+ft-extract/extracted/STDP-CSNN/CIFAR10/kfold/0-run1
+```
+
+Short-run setup:
+
+- Epochs: 30
+- Seed: 0
+
+Final accuracy (epoch 29):
+
+| Case | Train | Validation | Test |
+|------|-------|------------|------|
+| Dynamic max 20/class | 0.8111 | 0.6800 | 0.6632 |
+| Fixed 20/class | 0.8194 | 0.6720 | 0.6559 |
+| Fixed 10/class | 0.8076 | 0.6788 | 0.6642 |
+
+Final active neurons per class:
+
+| Case | Total active neurons | Mean active neurons/class |
+|------|----------------------|---------------------------|
+| Dynamic max 20/class | 129 | 12.9 |
+| Fixed 20/class | 200 | 20.0 |
+| Fixed 10/class | 100 | 10.0 |
+
+Generated artifacts:
+
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/metrics.csv`
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/accuracy_curves.png`
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/final_accuracy_bars.png`
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/active_neuron_counts.csv`
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/active_neuron_curves.png`
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/final_active_neurons_per_class.png`
+- `logs/STDP-CSNN/CIFAR10/comparison-three-cases/accuracy_vs_active_neurons.png`
+
 
 ## Limitations
 

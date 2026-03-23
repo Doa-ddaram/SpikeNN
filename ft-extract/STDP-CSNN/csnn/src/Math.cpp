@@ -1,4 +1,4 @@
-#include "Math.h"
+#include "CSNNMath.h"
 
 Tensor<float> _priv::MathHelper::unary_arithmetic_operator(const Tensor<float>& in) {
 	return Tensor<float>(in.shape());

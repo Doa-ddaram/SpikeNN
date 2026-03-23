@@ -3,7 +3,7 @@
 
 #include "Tensor.h"
 #include "Process.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 namespace process {
 

@@ -1,11 +1,9 @@
 #ifndef _PROCESS_WHITEN_H
 #define _PROCESS_WHITEN_H
 
-#include <lapacke.h>
-
 #include "Tensor.h"
 #include "Process.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 namespace process {
 

@@ -1,5 +1,5 @@
 #include "execution/TrainingSparseExecution.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 TrainingSparseExecution::TrainingSparseExecution(ExperimentType& experiment) :
 	_experiment(experiment), _train_set() {

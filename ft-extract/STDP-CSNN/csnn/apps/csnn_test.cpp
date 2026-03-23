@@ -19,12 +19,23 @@
 #include "process/SeparateSign.h"
 #include "dep/ArduinoJson-v6.17.3.h"
 
+#ifdef __APPLE__
+#include <mach-o/dyld.h>
+#endif
 
-// NOTE: Works on Linux only
+
 std::string get_build_path() {
 	// Get the absolute path to the executable
 	char self[4096] = { 0 };
+	#ifdef __APPLE__
+	uint32_t size = sizeof(self);
+	if (_NSGetExecutablePath(self, &size) != 0) {
+		throw std::runtime_error("Unable to resolve executable path");
+	}
+	#else
 	int nchar = readlink("/proc/self/exe", self, sizeof self);
+	(void)nchar;
+	#endif
 	std::string path = std::string(self);
 	// Remove the name of the executable from the path
     std::size_t pos = path.find_last_of("/");

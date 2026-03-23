@@ -1,12 +1,11 @@
 #ifndef _PROCESS_WHITEN_PATCHES_LOADER_H
 #define _PROCESS_WHITEN_PATCHES_LOADER_H
 
-#include <lapacke.h>
 #include <fstream>
 
 #include "Tensor.h"
 #include "Process.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 namespace process {
 

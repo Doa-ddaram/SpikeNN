@@ -13,15 +13,22 @@ def main(dataset_path, config, output_dir, seed=0, run_name=None):
     # Load dataset
     # NOTE: data must be stored to the SpikingDataset format
     trainset = SpikingDataset.from_file(f"{dataset_path}/trainset.npy")
-    valset = SpikingDataset.from_file(f"{dataset_path}/valset.npy") if os.path.exists(f"{dataset_path}/valset.npy") else None
-    testset = SpikingDataset.from_file(f"{dataset_path}/testset.npy") if os.path.exists(f"{dataset_path}/testset.npy") else None
-    
+    valset = (
+        SpikingDataset.from_file(f"{dataset_path}/valset.npy") if os.path.exists(f"{dataset_path}/valset.npy") else None
+    )
+    testset = (
+        SpikingDataset.from_file(f"{dataset_path}/testset.npy")
+        if os.path.exists(f"{dataset_path}/testset.npy")
+        else None
+    )
+
     # Get the number of classes
     n_classes = len(np.unique(trainset.labels))
 
     # Assert data is not empty
-    empty_dataset = np.any([sample.size == 0 for sample,_ in trainset])
-    if empty_dataset: raise RuntimeError("Some input samples do not contain any spike.")
+    empty_dataset = np.any([sample.size == 0 for sample, _ in trainset])
+    if empty_dataset:
+        raise RuntimeError("Some input samples do not contain any spike.")
 
     # Define the model
     model = Readout.init_from_dict(config, trainset.shape[1], n_classes, output_dir, run_name, trainset.max_time)
@@ -29,7 +36,7 @@ def main(dataset_path, config, output_dir, seed=0, run_name=None):
 
     # Train the model
     model.fit(train_dataset=trainset, val_dataset=valset, test_dataset=testset)
-    
+
     # Close the logger
     model.logger.stop()
 

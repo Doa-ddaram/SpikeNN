@@ -386,7 +386,7 @@ public:
 		if(_initialized) {
 			throw std::runtime_error("Variable already initialized");
 		}
-		_shape = Shape({is...});
+		_shape = Shape({static_cast<size_t>(is)...});
 	}
 
 	virtual void load(std::istream& stream) {

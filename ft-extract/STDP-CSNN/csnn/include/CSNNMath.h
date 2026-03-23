@@ -1,9 +1,14 @@
-#ifndef _M_MATH_H
-#define _M_MATH_H
+#ifndef _M_CSNN_MATH_H
+#define _M_CSNN_MATH_H
 
 #include <iostream>
 #include <cmath>
+
+#ifdef __APPLE__
+#include <Accelerate/Accelerate.h>
+#else
 #include <cblas.h>
+#endif
 
 #include "Tensor.h"
 

@@ -1,5 +1,5 @@
 #include "execution/SparseIntermediateExecution.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 SparseIntermediateExecution::SparseIntermediateExecution(ExperimentType& experiment) :
 	_experiment(experiment), _train_set(), _test_set() {

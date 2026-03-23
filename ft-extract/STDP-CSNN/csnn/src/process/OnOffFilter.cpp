@@ -1,6 +1,6 @@
 #include "process/OnOffFilter.h"
 #include "Experiment.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 using namespace process;
 

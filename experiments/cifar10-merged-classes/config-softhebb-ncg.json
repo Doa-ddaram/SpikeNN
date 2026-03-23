@@ -1,0 +1,59 @@
+{
+    "network": [
+        {
+            "n_neurons": 200,
+            "firing_threshold": 1600,
+            "w_init_normal": true,
+            "w_init_mean": 0.3,
+            "w_init_std": 0.01,
+            "w_norm": true,
+            "w_min": 0,
+            "w_max": 1
+        }
+    ],
+
+    "optimizer": {
+        "method": "s2stdp",
+        "stdp": "additive",
+        "class_inhib": true,
+        "t_gap": 0.005,
+        "ap": 0.1,
+        "am": -0.01,
+        "annealing": 0.98
+    },
+
+    "regularizer": {
+        "thr_lr": 20,
+        "thr_anneal": 0.1
+    },
+
+    "trainer": {
+        "epochs": 30,
+        "nt_neurons": 1,
+        "initial_active_per_class": 5,
+        "early_stopping": 5,
+
+        "dynamic_activation": {
+            "update_threshold": 150,
+            "growth_after_epoch": 1,
+            "uncertainty_margin": 0.25,
+            "max_active_per_class": 36,
+            "max_growth_per_class_per_epoch": 2,
+            "max_growth_classes_per_epoch": 2,
+            "min_class_difficulty_for_growth": 0.1,
+            "class_error_weight": 0.7,
+            "class_uncertainty_weight": 1.3
+        },
+
+        "pruning": {
+            "enabled": true,
+            "every_n_epochs": 4,
+            "min_target_updates": 30,
+            "min_target_updates_fraction": 0.15,
+            "min_target_precision": 0.1,
+            "max_prune_per_class": 1,
+            "keep_min_active_per_class": 4,
+            "class_difficulty_bias": 0.4
+        }
+    }
+}

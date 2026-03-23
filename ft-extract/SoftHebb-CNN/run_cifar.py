@@ -153,20 +153,26 @@ class WeightNormDependentLR(optim.lr_scheduler._LRScheduler):
         self.optimizer = optimizer
         self.initial_lr_groups = [group['lr'] for group in self.optimizer.param_groups]  # store initial lrs
         self.power_lr = power_lr
-        super().__init__(optimizer, last_epoch, verbose)
+        super().__init__(optimizer, last_epoch)
 
     def get_lr(self):
-        if not self._get_lr_called_within_step:
-            warnings.warn("To get the last learning rate computed by the scheduler, "
-                          "please use `get_last_lr()`.", UserWarning)
         new_lr = []
         for i, group in enumerate(self.optimizer.param_groups):
             for param in group['params']:
-                # difference between current neuron norm and theoretical converged norm (=1) scales the initial lr
-                # initial_lr * |neuron_norm - 1| ** 0.5
                 norm_diff = torch.abs(torch.linalg.norm(param.view(param.shape[0], -1), dim=1, ord=2) - 1) + 1e-10
                 new_lr.append(self.initial_lr_groups[i] * (norm_diff ** self.power_lr)[:, None, None, None])
         return new_lr
+
+    def step(self):
+        self._step_count += 1
+        new_lrs = []
+        for i, group in enumerate(self.optimizer.param_groups):
+            for param in group['params']:
+                norm_diff = torch.abs(torch.linalg.norm(param.view(param.shape[0], -1), dim=1, ord=2) - 1) + 1e-10
+                lr = self.initial_lr_groups[i] * (norm_diff ** self.power_lr)[:, None, None, None]
+                group['lr'] = lr
+                new_lrs.append(lr)
+        self._last_lr = new_lrs
 
 
 class TensorLRSGD(optim.SGD):
@@ -293,7 +299,7 @@ if __name__ == "__main__":
     n_classes = len(np.unique(y_train))
     if not os.path.exists(args.output_dir): os.makedirs(args.output_dir)
     
-    device = torch.device('cuda:0')
+    device = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
     model = DeepSoftHebb(n_classes=n_classes)
     model.to(device)
 

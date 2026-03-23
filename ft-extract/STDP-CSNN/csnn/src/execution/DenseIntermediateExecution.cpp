@@ -1,5 +1,5 @@
 #include "execution/DenseIntermediateExecution.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 DenseIntermediateExecution::DenseIntermediateExecution(ExperimentType& experiment) :
 	_experiment(experiment), _train_set(), _test_set() {

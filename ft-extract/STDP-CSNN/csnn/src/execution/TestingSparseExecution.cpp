@@ -1,5 +1,5 @@
 #include "execution/TestingSparseExecution.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 TestingSparseExecution::TestingSparseExecution(ExperimentType& experiment) :
 	_experiment(experiment), _test_set() {

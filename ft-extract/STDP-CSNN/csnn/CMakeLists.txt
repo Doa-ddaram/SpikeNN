@@ -33,9 +33,11 @@ message(STATUS ${LAPACK_INCLUDES})
 file(GLOB_RECURSE SOURCES src/* include/*)
 include_directories(include/ ${LAPACK_INCLUDES})
 
-
-set(APPS_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ansi -pedantic -Wshadow -Weffc++ -ftemplate-backtrace-limit=0  -msse -msse2 -msse3 -march=native -mfpmath=sse")
-add_definitions(-DSMID_AVX256)
+set(APPS_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -ansi -pedantic -Wshadow -Weffc++ -ftemplate-backtrace-limit=0 -march=native")
+if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|i.86)$")
+    set(APPS_FLAGS "${APPS_FLAGS} -msse -msse2 -msse3 -mfpmath=sse")
+    add_definitions(-DSMID_AVX256)
+endif()
 
 add_subdirectory(dep/libsvm)
 

@@ -1,5 +1,5 @@
 #include "execution/TrainingExecution.h"
-#include "Math.h"
+#include "CSNNMath.h"
 
 TrainingExecution::TrainingExecution(ExperimentType& experiment) :
 	_experiment(experiment), _train_set() {

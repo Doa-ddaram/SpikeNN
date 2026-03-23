@@ -61,7 +61,17 @@ public:
 	}
 
 	template<typename T>
+	static constexpr typename std::enable_if<std::is_same<T, long>::value, PersistenceType>::type to_indetifier() {
+		return _PERSISTENCE_INT64;
+	}
+
+	template<typename T>
 	static constexpr typename std::enable_if<std::is_same<T, uint64_t>::value, PersistenceType>::type to_indetifier() {
+		return _PERSISTENCE_UINT64;
+	}
+
+	template<typename T>
+	static constexpr typename std::enable_if<std::is_same<T, unsigned long>::value, PersistenceType>::type to_indetifier() {
 		return _PERSISTENCE_UINT64;
 	}
 

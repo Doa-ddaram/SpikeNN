@@ -11,9 +11,10 @@ from generate_folds import generate_kfolds
 Code is adapted from https://gitlab.univ-lille.fr/fox/snn-pcn/
 """
 
+
 def load_batch(file_path):
-    with open(file_path, 'rb') as f:
-        dict = pickle.load(f, encoding='bytes')
+    with open(file_path, "rb") as f:
+        dict = pickle.load(f, encoding="bytes")
     x = dict[b"data"]
     y = dict[b"labels"]
     # Reshape and invert channel dimension
@@ -22,18 +23,27 @@ def load_batch(file_path):
     return x, y
 
 
+# Remap CIFAR-10 labels: merge classes 0-4 into 0, keep 5-9 as 1-5
+def merge_cifar10_labels(y):
+    y_new = np.copy(y)
+    y_new[(y >= 0) & (y <= 4)] = 0
+    for i in range(5, 10):
+        y_new[y == i] = i - 4
+    return y_new
+
+
 def download_dataset():
-    base_url = 'https://www.cs.toronto.edu/~kriz/'
-    filename = 'cifar-10-python.tar.gz'
+    base_url = "https://www.cs.toronto.edu/~kriz/"
+    filename = "cifar-10-python.tar.gz"
 
     # Download CIFAR-10 dataset
     url = base_url + filename
     response = requests.get(url)
-    with open(filename, 'wb') as f:
+    with open(filename, "wb") as f:
         f.write(response.content)
 
     # Extract CIFAR-10 dataset
-    with tarfile.open(filename, 'r:gz') as tar:
+    with tarfile.open(filename, "r:gz") as tar:
         tar.extractall()
 
     os.remove(filename)
@@ -41,7 +51,7 @@ def download_dataset():
 
 if __name__ == "__main__":
     download_dataset()
-    data_dir = 'cifar-10-batches-py/'
+    data_dir = "cifar-10-batches-py/"
 
     X_train, y_train = [], []
     for i in range(1, 6):
@@ -51,17 +61,22 @@ if __name__ == "__main__":
         y_train.append(y)
 
     X_train = np.concatenate(X_train)
+
     y_train = np.concatenate(y_train)
+    # Apply label merging
+    y_train = merge_cifar10_labels(y_train)
+
     X_test, y_test = load_batch(data_dir + "test_batch")
+    y_test = merge_cifar10_labels(y_test)
 
     shutil.rmtree(data_dir)
 
     os.makedirs("CIFAR10/")
 
-    with open(f'CIFAR10/X_train.bin', 'wb') as f:
+    with open(f"CIFAR10/X_train.bin", "wb") as f:
         for x in X_train:
             f.write(x.ravel().tobytes())
-    with open(f'CIFAR10/X_test.bin', 'wb') as f:
+    with open(f"CIFAR10/X_test.bin", "wb") as f:
         for x in X_test:
             f.write(x.ravel().tobytes())
     with open(f"CIFAR10/y_train.bin", "wb") as f:
@@ -70,6 +85,6 @@ if __name__ == "__main__":
     with open(f"CIFAR10/y_test.bin", "wb") as f:
         for label in y_test:
             f.write(label)
-            
+
     generate_train_val("CIFAR10/", 0.1, 0)
     generate_kfolds("CIFAR10/", 10)

@@ -1,11 +1,43 @@
-__pycache__
-.ipynb_checkpoints
-.vscode
+# Python
+__pycache__/
+*.py[cod]
 *.egg-info
 *.egg
+.ipynb_checkpoints/
+
+# IDE
+.vscode/
+.DS_Store
+
+# Virtual environment
+.venv/
+
+# Wandb
+wandb/
+
+# Raw datasets (large binary files)
+CIFAR10/
+ft-extract/dataset/CIFAR10/
+ft-extract/dataset/FMNIST/
+ft-extract/dataset/MNIST/
+
+# Extracted SNN features (large npy files, GBs)
+ft-extract/extracted/
+
+# Experiment input datasets (preprocessed npy, GBs)
+experiments/*/input/
+experiments/*/input-*/
+
+# Experiment output model files (large)
+experiments/**/readout_log*.txt
+
+# TensorBoard event files (binary, regenerable)
+**/tensorboard/
+**/tensorboard_*/
+
+# Legacy generic patterns
 data/
 plots/
 logs/
 output/
 input/
-wandb/

@@ -6,7 +6,7 @@ using namespace dataset;
 ImageBin::ImageBin(const std::string& image_filename, const std::string& label_filename, int width, int height, int depth, const std::string& dataset_name) :
 	_image_filename(image_filename), _label_filename(label_filename),
 	_image_file(image_filename, std::ios::in | std::ios::binary), _label_file(label_filename, std::ios::in | std::ios::binary),
-	_shape({width, height, depth}), _next_label(0), _name(dataset_name) {
+	_shape({static_cast<size_t>(width), static_cast<size_t>(height), static_cast<size_t>(depth)}), _next_label(0), _name(dataset_name) {
 
 	if(!_image_file.is_open()) {
 		throw std::runtime_error("Can't open "+image_filename);
