@@ -23,15 +23,6 @@ def load_batch(file_path):
     return x, y
 
 
-# Remap CIFAR-10 labels: merge classes 0-4 into 0, keep 5-9 as 1-5
-def merge_cifar10_labels(y):
-    y_new = np.copy(y)
-    y_new[(y >= 0) & (y <= 4)] = 0
-    for i in range(5, 10):
-        y_new[y == i] = i - 4
-    return y_new
-
-
 def download_dataset():
     base_url = "https://www.cs.toronto.edu/~kriz/"
     filename = "cifar-10-python.tar.gz"
@@ -63,11 +54,8 @@ if __name__ == "__main__":
     X_train = np.concatenate(X_train)
 
     y_train = np.concatenate(y_train)
-    # Apply label merging
-    y_train = merge_cifar10_labels(y_train)
 
     X_test, y_test = load_batch(data_dir + "test_batch")
-    y_test = merge_cifar10_labels(y_test)
 
     shutil.rmtree(data_dir)
 
